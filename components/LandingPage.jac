@@ -8,7 +8,7 @@ dashboard.
 import from "@jac/runtime" { Link }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    ArrowRight01Icon, CheckmarkCircle01Icon
+    ArrowRight01Icon, Upload01Icon
 }
 import from ".AppHeader" { PublicHeader }
 
@@ -32,26 +32,6 @@ def:pub LandingStep(
 }
 
 
-def:pub DashboardPreviewStep(
-    title: str,
-    description: str
-) -> JsxElement {
-    return <li className="grid grid-cols-[40px_1fr] gap-4">
-        <span className="flex size-10 items-center justify-center rounded-full bg-blue-700 text-white">
-            <HugeiconsIcon
-                icon={CheckmarkCircle01Icon}
-                strokeWidth={2}
-                className="size-5"
-            />
-        </span>
-        <div className="pt-0.5">
-            <p className="text-sm font-medium text-gray-1000">{title}</p>
-            <p className="mt-1 text-sm leading-6 text-gray-900">{description}</p>
-        </div>
-    </li>;
-}
-
-
 def:pub LandingPage() -> JsxElement {
     return <div className="min-h-svh bg-background text-gray-1000">
         <PublicHeader />
@@ -65,55 +45,59 @@ def:pub LandingPage() -> JsxElement {
                     <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-900">
                         BillBacked audits every charge, estimates the fair Medicare cost, and prepares provider outreach for your approval.
                     </p>
-                    <div className="mt-9 flex flex-wrap items-center gap-4">
-                        <Link
-                            to="/signup"
-                            className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-                        >
-                            Create an account
-                            <HugeiconsIcon
-                                icon={ArrowRight01Icon}
-                                strokeWidth={2}
-                                className="size-4"
-                            />
-                        </Link>
-                        <Link
-                            to="/login"
-                            className="rounded-full px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-                        >
-                            Sign in
-                        </Link>
-                    </div>
-                    <p className="mt-6 text-sm text-gray-700">
+                    <p className="mt-9 text-sm text-gray-700">
                         Your dashboard stays private. No provider message is sent without your approval.
                     </p>
                 </div>
 
                 <section
-                    className="rounded-[20px] bg-background-200 p-7 sm:p-8"
-                    aria-labelledby="dashboard-preview-title"
+                    className="rounded-[20px] bg-canvas p-6 sm:p-8"
+                    aria-labelledby="landing-upload-title"
                 >
-                    <p className="text-sm text-gray-700">Inside your dashboard</p>
+                    <p className="text-sm text-gray-700">Start your audit</p>
                     <h2
-                        id="dashboard-preview-title"
+                        id="landing-upload-title"
                         className="mt-2 text-2xl font-medium tracking-[-0.04em]"
                     >
-                        Follow the audit from upload to approval.
+                        Upload a Medicare bill.
                     </h2>
-                    <ol className="mt-8 flex flex-col gap-7">
-                        <DashboardPreviewStep
-                            title="Upload your bill"
-                            description="Add a PDF or clear photo after you sign in."
+                    <p className="mt-2 text-sm leading-6 text-gray-900">
+                        Create a private account before choosing your PDF or photo.
+                    </p>
+                    <Link
+                        to="/signup"
+                        className="group mt-8 flex min-h-64 flex-col items-center justify-center rounded-2xl bg-background p-6 text-center transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-4"
+                        aria-label="Create an account to upload a Medicare bill"
+                    >
+                        <HugeiconsIcon
+                            icon={Upload01Icon}
+                            strokeWidth={2}
+                            className="size-7 text-blue-700"
                         />
-                        <DashboardPreviewStep
-                            title="See the agent work"
-                            description="Follow reading, organization, and price comparison in one place."
-                        />
-                        <DashboardPreviewStep
-                            title="Approve the next step"
-                            description="Review the true-cost bill before negotiation begins."
-                        />
-                    </ol>
+                        <span className="mt-6 text-base font-medium text-gray-1000">
+                            Choose your bill
+                        </span>
+                        <span className="mt-2 text-sm text-gray-700">
+                            PDF, PNG, or JPG
+                        </span>
+                        <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform group-hover:translate-y-[-1px]">
+                            Sign up to upload
+                            <HugeiconsIcon
+                                icon={ArrowRight01Icon}
+                                strokeWidth={2}
+                                className="size-4"
+                            />
+                        </span>
+                    </Link>
+                    <p className="mt-5 text-sm text-gray-900">
+                        Already have an account?{" "}
+                        <Link
+                            to="/login"
+                            className="rounded-md font-medium text-blue-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                        >
+                            Sign in
+                        </Link>
+                    </p>
                 </section>
             </section>
 

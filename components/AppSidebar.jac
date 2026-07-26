@@ -15,6 +15,31 @@ import from "@hugeicons/core-free-icons" {
 }
 
 
+def:pub PrimarySidebarLink(
+    route: str,
+    label: str,
+    icon: JsxElement,
+    active: bool
+) -> JsxElement {
+    link_state = (
+        "bg-sidebar-accent text-sidebar-accent-foreground"
+        if active
+        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    );
+
+    return <SidebarMenuItem>
+        <Link
+            to={route}
+            aria-current={"page" if active else None}
+            className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + link_state}
+        >
+            {icon}
+            <span>{label}</span>
+        </Link>
+    </SidebarMenuItem>;
+}
+
+
 def:pub InvoiceHistoryLink(
     invoice_id: str,
     active: bool
@@ -63,17 +88,7 @@ def:pub AppSidebar(
     new_audit_active = (
         active_path == "/dashboard" or active_path == "/dashboard/audit"
     );
-    new_audit_state = (
-        "bg-sidebar-accent text-sidebar-accent-foreground"
-        if new_audit_active
-        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-    );
     call_test_active = active_path == "/dashboard/call-test";
-    call_test_state = (
-        "bg-sidebar-accent text-sidebar-accent-foreground"
-        if call_test_active
-        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-    );
 
     return <Sidebar collapsible="offcanvas">
         <SidebarHeader className="flex h-12 shrink-0 items-center border-b border-sidebar-border/70 px-3 py-0">
@@ -91,34 +106,30 @@ def:pub AppSidebar(
                     <SidebarGroupContent>
                         <div className="[&_[data-sidebar=menu]]:gap-1">
                             <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <Link
-                                        to="/dashboard"
-                                        aria-current={"page" if new_audit_active else None}
-                                        className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + new_audit_state}
-                                    >
+                                <PrimarySidebarLink
+                                    route="/dashboard"
+                                    label="New audit"
+                                    icon={
                                         <HugeiconsIcon
                                             icon={AddInvoiceIcon}
                                             strokeWidth={2}
                                             className="size-4 shrink-0"
                                         />
-                                        <span>New audit</span>
-                                    </Link>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <Link
-                                        to="/dashboard/call-test"
-                                        aria-current={"page" if call_test_active else None}
-                                        className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + call_test_state}
-                                    >
+                                    }
+                                    active={new_audit_active}
+                                />
+                                <PrimarySidebarLink
+                                    route="/dashboard/call-test"
+                                    label="Test negotiation call"
+                                    icon={
                                         <HugeiconsIcon
                                             icon={CallOutgoing01Icon}
                                             strokeWidth={2}
                                             className="size-4 shrink-0"
                                         />
-                                        <span>Test negotiation call</span>
-                                    </Link>
-                                </SidebarMenuItem>
+                                    }
+                                    active={call_test_active}
+                                />
                             </SidebarMenu>
                         </div>
                     </SidebarGroupContent>

@@ -5,6 +5,7 @@ import from "@hugeicons/core-free-icons" {
     CallOutgoing01Icon, CheckmarkCircle01Icon, Loading03Icon
 }
 import from ".ui.button" { Button }
+import from ".ui.badge" { Badge }
 import from ".ui.field" { Field, FieldLabel }
 import from ".ui.input" { Input }
 sv import from ..services.negotiation {
@@ -188,9 +189,9 @@ def:pub NegotiationCallPage() -> JsxElement {
                             {case_data.provider_name if case_data is not None else "Loading…"}
                         </h3>
                     </div>
-                    <span className="rounded-full bg-background px-3 py-1 text-xs font-medium text-gray-900">
+                    <Badge variant="secondary">
                         Demo only
-                    </span>
+                    </Badge>
                 </div>
 
                 {if case_data is not None {

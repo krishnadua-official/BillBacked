@@ -60,7 +60,7 @@ plugins = ["tailwindcss()"]
 lib_imports = ["import tailwindcss from '@tailwindcss/vite'"]
 
 [client.app_meta_data]
-title = "BillBacked"
+title = "BillBacked — Medicare Bill Audits"
 description = "Audit Medicare bills, understand the true cost, and prepare a provider negotiation."
 keywords = "Medicare, medical bills, bill audit, healthcare"
 author = "BillBacked"

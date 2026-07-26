@@ -27,9 +27,26 @@ def ensure_head_link(
 }
 
 
+def ensure_head_meta(name: str, content: str) {
+    selector = "meta[name='" + name + "']";
+    head_meta: any = document.querySelector(selector);
+    if not head_meta {
+        head_meta = document.createElement("meta");
+        head_meta.setAttribute("name", name);
+        document_head: any = document.head;
+        document_head.appendChild(head_meta);
+    }
+    head_meta.setAttribute("content", content);
+}
+
+
 def:pub BrandHead() -> JsxElement {
     can with entry {
-        document.title = "Billbacked";
+        document.title = "BillBacked — Medicare Bill Audits";
+        ensure_head_meta(
+            "description",
+            "Audit Medicare bills, understand the true cost, and prepare a provider negotiation."
+        );
         ensure_head_link(
             "icon",
             "/assets/brand/favicon.ico",

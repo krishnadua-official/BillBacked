@@ -1,4 +1,4 @@
-"""Email composer and negotiator backend.
+"""Agent 4 -- Composer & Negotiator backend.
 
 Owns everything past the analyzed-bill handoff:
   * Case / LineItem / Message graph model.
@@ -16,13 +16,16 @@ Owns everything past the analyzed-bill handoff:
 Underscore-prefixed helpers stay off the API (`_send_email`, `_load_mock_case_bundle`,
 `_compose_*`, `_now`, `_case_summary`). See `services/notes.sv.jac` for the same convention.
 
-This is separate from negotiation.sv.jac, which owns the fictional ElevenLabs
-outbound-call sandbox. This module owns the persisted email negotiation flow.
+Walker naming: don't call an ability `drop` -- see the note in notes.sv.jac. This
+file uses `run` and `reply`.
 """
 
 import os;
+import re;
 import requests;
 import from datetime { datetime, timezone }
+import from http { HTTPMethod }
+import from fastapi.responses { HTMLResponse }
 
 
 # Demo-only knob. In the real product this comes from the parsed bill; for the
@@ -44,6 +47,14 @@ node Case {
     has strategist_angle: str = "";
     has created_at: str = "";
     has updated_at: str = "";
+    # Root anchor id of the user who created this case. Stamped at StartNegotiation
+    # so the anonymous webhook (and any logging) can tell which user owns a reply.
+    has owner_root: str = "";
+    # Inbound messages arrive via the anonymous /webhook/resend-inbound endpoint,
+    # which cannot own graph edges under the case's per-user root. Stored as
+    # dicts directly on the case (mutation allowed by grant(case, WritePerm))
+    # so the owner sees them alongside outbound Message edges.
+    has inbound_messages: list[dict[str, any]] = [];
 
     def to_view -> CaseView {
         return CaseView(
@@ -54,7 +65,8 @@ node Case {
             status=self.status,
             original_total=self.original_total,
             disputed_total=self.disputed_total,
-            message_count=len([self -->][?:Message]),
+            message_count=len([self -->][?:Message]) + len(self.inbound_messages),
+            owner_root=self.owner_root,
             created_at=self.created_at,
             updated_at=self.updated_at
         );
@@ -63,6 +75,18 @@ node Case {
     def to_detail_view -> CaseDetailView {
         items = [i.to_view() for i in [self -->][?:LineItem]];
         msgs = [m.to_view() for m in [self -->][?:Message]];
+        for entry in self.inbound_messages {
+            msgs.append(MessageView(
+                id=str(entry.get("id","")),
+                direction=str(entry.get("direction","INBOUND")),
+                subject=str(entry.get("subject","")),
+                body=str(entry.get("body","")),
+                to_addr=str(entry.get("to_addr","")),
+                from_addr=str(entry.get("from_addr","")),
+                sent_ok=bool(entry.get("sent_ok", True)),
+                created_at=str(entry.get("created_at",""))
+            ));
+        }
         msgs.sort(key=lambda (m: MessageView) { m.created_at; });
         return CaseDetailView(
             id=jid(self),
@@ -73,6 +97,7 @@ node Case {
             original_total=self.original_total,
             disputed_total=self.disputed_total,
             strategist_angle=self.strategist_angle,
+            owner_root=self.owner_root,
             created_at=self.created_at,
             updated_at=self.updated_at,
             line_items=items,
@@ -141,6 +166,7 @@ obj CaseView {
     has original_total: float;
     has disputed_total: float;
     has message_count: int;
+    has owner_root: str;
     has created_at: str;
     has updated_at: str;
 }
@@ -178,6 +204,7 @@ obj CaseDetailView {
     has original_total: float;
     has disputed_total: float;
     has strategist_angle: str;
+    has owner_root: str;
     has created_at: str;
     has updated_at: str;
     has line_items: list[LineItemView];
@@ -268,18 +295,33 @@ obj EmailDraft {
 # The demo doesn't crash because email plumbing was flaky.
 # ---------------------------------------------------------------------------
 
-def _send_email(to_addr: str, subject: str, body: str) -> bool {
+def _send_email(to_addr: str, subject: str, body: str, case_id: str = "") -> bool {
     api_key = os.environ.get("RESEND_API_KEY", "");
     if not api_key {
         print("[negotiation] RESEND_API_KEY not set -- skipping actual send.");
         return False;
     }
+    tagged_body = body;
+    if case_id {
+        tagged_body = (
+            body
+            + "\n\n---\n"
+            + f"[Case Reference: {case_id}] -- please keep this line in your reply so we can route your response to the correct case."
+        );
+    }
     payload: dict[str, any] = {
         "from": "BillBacked <onboarding@resend.dev>",
         "to": [to_addr],
         "subject": subject,
-        "text": body
+        "text": tagged_body
     };
+    if case_id {
+        # Plus-addressed reply_to routes provider responses back through Resend Inbound
+        # to /webhook/resend-inbound (once the domain is verified). X-header carries the
+        # same id for providers that preserve custom headers.
+        payload["reply_to"] = f"cases+{case_id}@onboarding.resend.dev";
+        payload["headers"] = {"X-BillBacked-Case-Id": case_id};
+    }
     try {
         r = requests.post(
             "https://api.resend.com/emails",
@@ -308,6 +350,12 @@ def _send_email(to_addr: str, subject: str, body: str) -> bool {
 
 def _now -> str {
     return datetime.now(timezone.utc).isoformat();
+}
+
+
+def _msg_id -> str {
+    import from uuid { uuid4 }
+    return uuid4().hex;
 }
 
 
@@ -425,6 +473,20 @@ def get_case(case_id: str) -> CaseDetailView | None {
 }
 
 
+"""REST alias: GET /cases/{case_id}. Returns the same CaseDetailView, scoped
+to the caller's own root -- another user's case_id yields None, not 403, so
+we don't leak whether that id exists."""
+@restspec(method=HTTPMethod.GET, path="/cases/{case_id}")
+def get_case_by_id(case_id: str) -> CaseDetailView | None {
+    for c in [root -->][?:Case] {
+        if jid(c) == case_id {
+            return c.to_detail_view();
+        }
+    }
+    return None;
+}
+
+
 # ---------------------------------------------------------------------------
 # WRITE ENDPOINTS -- walkers, invalidate cached reads.
 # ---------------------------------------------------------------------------
@@ -454,6 +516,7 @@ walker StartNegotiation {
             original_total=original_total,
             disputed_total=disputed_total,
             strategist_angle=bundle.strategist_angle,
+            owner_root=jid(here),
             created_at=now,
             updated_at=now
         );
@@ -467,8 +530,13 @@ walker StartNegotiation {
             );
         }
 
+        # Expose this specific case for the anonymous inbound webhook. Case ids
+        # are unguessable 128-bit random UUIDs (capability-url pattern). Add Svix
+        # signature verification before shipping.
+        grant(new_case, level=WritePerm);
+
         draft = _compose_dispute_email(bundle);
-        sent_ok = _send_email(TEST_RECIPIENT, draft.subject, draft.body);
+        sent_ok = _send_email(TEST_RECIPIENT, draft.subject, draft.body, jid(new_case));
 
         new_case ++> Message(
             direction="OUTBOUND",
@@ -521,7 +589,7 @@ walker SimulateProviderReply {
         );
 
         counter = _compose_counter_response(summary, pushback);
-        sent_ok = _send_email(TEST_RECIPIENT, counter.subject, counter.body);
+        sent_ok = _send_email(TEST_RECIPIENT, counter.subject, counter.body, jid(target));
         target ++> Message(
             direction="OUTBOUND",
             subject=counter.subject,
@@ -538,4 +606,326 @@ walker SimulateProviderReply {
         self.reports.append(target.to_detail_view());
         report target.to_detail_view();
     }
+}
+
+
+# ---------------------------------------------------------------------------
+# TEST ENDPOINT -- POST /send-email
+#
+# Fixed-payload smoke test for the email send path. Builds a dispute-style
+# body with a handful of line items (charged vs Medicare-approved) plus a
+# CMS Physician Fee Schedule link per CPT code, then fires _send_email.
+# ---------------------------------------------------------------------------
+
+obj TestLineItem {
+    has code: str;
+    has description: str;
+    has charged: float;
+    has medicare: float;
+}
+
+
+obj SendEmailResult {
+    has sent_ok: bool;
+    has to_addr: str;
+    has subject: str;
+    has body: str;
+    has line_items_included: int;
+}
+
+
+def _cms_link(code: str) -> str {
+    return f"https://www.cms.gov/medicare/physician-fee-schedule/search?Y=2025&HT=0&H1={code}&M=5";
+}
+
+
+def _compose_test_email(bundle: CaseBundle) -> EmailDraft {
+    billed_total = 0.0;
+    expected_total = 0.0;
+    for it in bundle.items {
+        billed_total += it.charged_amount;
+        expected_total += it.medicare_rate;
+    }
+    savings = billed_total - expected_total;
+
+    lines = [
+        "To the Patient Financial Services team,",
+        "",
+        f"We reviewed the recent invoice from {bundle.provider_name} for {bundle.patient_name} against Medicare-approved rates and identified the following overcharges:",
+        ""
+    ];
+    for it in bundle.items {
+        lines.append(f"- CPT {it.code} ({it.description})");
+        lines.append(f"    Charged:            ${it.charged_amount:.2f}");
+        lines.append(f"    Medicare-approved:  ${it.medicare_rate:.2f}");
+        lines.append(f"    Overcharge:         ${it.charged_amount - it.medicare_rate:.2f}");
+        lines.append(f"    Pricing reference:  {_cms_link(it.code)}");
+        lines.append("");
+    }
+    lines.append(f"Total billed:                ${billed_total:.2f}");
+    lines.append(f"Total Medicare-approved:     ${expected_total:.2f}");
+    lines.append(f"Requested adjustment:        ${savings:.2f}");
+    lines.append("");
+    lines.append("Please review and issue a revised invoice reflecting the Medicare-approved rates above.");
+    lines.append("");
+    lines.append("Regards,");
+    lines.append("BillBacked");
+
+    return EmailDraft(
+        subject=f"Bill review request -- {bundle.patient_name}",
+        body="\n".join(lines)
+    );
+}
+
+
+@restspec(method=HTTPMethod.POST, path="/send-email")
+def:pub send_email_test(bundle: CaseBundle | None = None) -> SendEmailResult {
+    active_bundle: CaseBundle = bundle if isinstance(bundle, CaseBundle) else _load_mock_case_bundle();
+    draft = _compose_test_email(active_bundle);
+    ok = _send_email(TEST_RECIPIENT, draft.subject, draft.body);
+    return SendEmailResult(
+        sent_ok=ok,
+        to_addr=TEST_RECIPIENT,
+        subject=draft.subject,
+        body=draft.body,
+        line_items_included=len(active_bundle.items)
+    );
+}
+
+
+glob SEND_EMAIL_PAGE_HTML: str = """<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>BillBacked -- Send Test Email</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #111; }
+        h1 { margin: 0 0 4px; }
+        p.muted { color: #666; margin-top: 0; }
+        textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { font-size: 14px; padding: 8px 16px; border: 1px solid #333; background: #111; color: #fff; border-radius: 4px; cursor: pointer; margin-top: 8px; }
+        button:disabled { opacity: 0.5; cursor: wait; }
+        pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+        h2 { margin-top: 32px; }
+        .row { display: flex; gap: 16px; }
+        .col { flex: 1; }
+        code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Send test email</h1>
+    <p class="muted">
+        Edit the case bundle JSON below and click Send. The backend composes a dispute email with charged vs Medicare rates and a CMS pricing link per CPT code, then delivers it via Resend to
+        <code>georgeceja08@gmail.com</code>. Without <code>RESEND_API_KEY</code> set, the draft still returns for inspection but no email is delivered (<code>sent_ok=false</code>).
+    </p>
+    <h2>Case bundle</h2>
+    <textarea id="bundle" rows="22"></textarea>
+    <button id="send">Send</button>
+    <h2>Response</h2>
+    <div class="row">
+        <div class="col">
+            <h3>Meta</h3>
+            <pre id="meta">(none yet)</pre>
+        </div>
+        <div class="col">
+            <h3>Composed body</h3>
+            <pre id="body">(none yet)</pre>
+        </div>
+    </div>
+    <script>
+        const DEFAULT_BUNDLE = {
+            provider_name: "Sunrise Regional Medical Center",
+            provider_email: "billing@sunriseregional.example.com",
+            patient_name: "Margaret Chen",
+            strategist_angle: "Every line item is priced 5-10x the Medicare-approved rate with no documented modifiers. Lead with the aggregate delta.",
+            items: [
+                { code: "99213", description: "Office visit, established patient (level 3)", charged_amount: 340.00, medicare_rate: 87.05, discrepancy_type: "overcharge", discrepancy_amount: 252.95 },
+                { code: "80053", description: "Comprehensive metabolic panel", charged_amount: 145.00, medicare_rate: 14.51, discrepancy_type: "overcharge", discrepancy_amount: 130.49 },
+                { code: "71046", description: "Chest X-ray, two views", charged_amount: 220.00, medicare_rate: 32.19, discrepancy_type: "overcharge", discrepancy_amount: 187.81 }
+            ]
+        };
+        const ta = document.getElementById("bundle");
+        ta.value = JSON.stringify(DEFAULT_BUNDLE, null, 2);
+        const btn = document.getElementById("send");
+        const metaEl = document.getElementById("meta");
+        const bodyEl = document.getElementById("body");
+        btn.addEventListener("click", async () => {
+            let bundle;
+            try { bundle = JSON.parse(ta.value); }
+            catch (e) { metaEl.textContent = "Invalid JSON: " + e.message; return; }
+            btn.disabled = true;
+            btn.textContent = "Sending...";
+            try {
+                const res = await fetch("/send-email", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ bundle })
+                });
+                const data = await res.json();
+                const result = (data && data.data && data.data.result) || {};
+                metaEl.textContent = JSON.stringify({
+                    http_status: res.status,
+                    ok: data.ok,
+                    sent_ok: result.sent_ok,
+                    to_addr: result.to_addr,
+                    subject: result.subject,
+                    line_items_included: result.line_items_included,
+                    error: data.error
+                }, null, 2);
+                bodyEl.textContent = result.body || "(no body)";
+            } catch (e) {
+                metaEl.textContent = "Fetch failed: " + e.message;
+            }
+            btn.disabled = false;
+            btn.textContent = "Send";
+        });
+    </script>
+</body>
+</html>""";
+
+
+@restspec(method=HTTPMethod.GET, path="/send-email", envelope=False, produces="text/html")
+def:pub send_email_page -> str {
+    return SEND_EMAIL_PAGE_HTML;
+}
+
+
+# ---------------------------------------------------------------------------
+# INBOUND WEBHOOK -- POST /webhook/resend-inbound
+#
+# Resend Inbound Email delivery (docs.resend.com/dashboard/webhooks/introduction)
+# POSTs an "email.received" event to this endpoint when a provider replies to a
+# message we sent. We recover the case_id from (in priority order):
+#   1. The X-BillBacked-Case-Id custom header (preserved by well-behaved providers)
+#   2. The plus-addressed To: `cases+<case_id>@onboarding.resend.dev`
+#   3. A `[Case Reference: <case_id>]` marker at the bottom of the reply body
+# then jobj-look-up the Case (bypasses per-user root scoping since the webhook
+# is anonymous) and attach an INBOUND Message.
+#
+# Signature verification: Resend signs webhook payloads via Svix. Not implemented
+# here for the hackathon -- set RESEND_WEBHOOK_SECRET and verify svix headers in
+# production. TODO.
+# ---------------------------------------------------------------------------
+
+obj WebhookResult {
+    has received: bool;
+    has case_id: str;
+    has message_id: str;
+    has status: str;   # "stored" | "unmatched" | "not_found" | "ignored"
+    has note: str;
+}
+
+
+def _extract_case_id(data: dict[str, any]) -> str {
+    # Priority 1 -- custom header (Resend delivers headers as a list of {name, value})
+    hdrs = data.get("headers");
+    if isinstance(hdrs, list) {
+        for h in hdrs {
+            if isinstance(h, dict) {
+                name = str(h.get("name","")).lower();
+                if name == "x-billbacked-case-id" {
+                    return str(h.get("value",""));
+                }
+            }
+        }
+    } elif isinstance(hdrs, dict) {
+        val = hdrs.get("X-BillBacked-Case-Id") or hdrs.get("x-billbacked-case-id");
+        if val {
+            return str(val);
+        }
+    }
+    # Priority 2 -- plus-addressed To
+    tos = data.get("to");
+    to_list: list = tos if isinstance(tos, list) else [tos];
+    for addr in to_list {
+        candidate = "";
+        if isinstance(addr, str) {
+            candidate = addr;
+        } elif isinstance(addr, dict) {
+            candidate = str(addr.get("email",""));
+        }
+        m = re.search(r"cases\+([A-Za-z0-9_\-]+)@", candidate);
+        if m {
+            return m.group(1);
+        }
+    }
+    # Priority 3 -- body marker
+    text = data.get("text") or data.get("html") or data.get("body") or "";
+    if isinstance(text, str) {
+        m = re.search(r"\[Case Reference:\s*([A-Za-z0-9_\-]+)\s*\]", text);
+        if m {
+            return m.group(1);
+        }
+    }
+    return "";
+}
+
+
+def _addr_str(field: any) -> str {
+    if isinstance(field, str) {
+        return field;
+    }
+    if isinstance(field, dict) {
+        return str(field.get("email",""));
+    }
+    if isinstance(field, list) and len(field) > 0 {
+        return _addr_str(field[0]);
+    }
+    return "";
+}
+
+
+@restspec(method=HTTPMethod.POST, path="/webhook/resend-inbound")
+def:pub resend_inbound_webhook(
+    type: str = "",
+    data: dict[str, any] | None = None,
+    created_at: str = ""
+) -> WebhookResult {
+    payload: dict[str, any] = data if isinstance(data, dict) else {};
+
+    if type and type != "email.received" and type != "email.inbound" {
+        return WebhookResult(
+            received=True, case_id="", message_id="",
+            status="ignored", note=f"event type {type} not handled"
+        );
+    }
+
+    case_id = _extract_case_id(payload);
+    if not case_id {
+        print("[negotiation] Inbound webhook: no case reference found in payload");
+        return WebhookResult(
+            received=True, case_id="", message_id="",
+            status="unmatched", note="No case reference in headers, to-address, or body"
+        );
+    }
+
+    target = jobj(case_id);
+    if not isinstance(target, Case) {
+        print(f"[negotiation] Inbound webhook: case {case_id} not found");
+        return WebhookResult(
+            received=True, case_id=case_id, message_id="",
+            status="not_found", note="Case id resolved but not a Case node"
+        );
+    }
+
+    entry: dict[str, any] = {
+        "id": _msg_id(),
+        "direction": "INBOUND",
+        "subject": str(payload.get("subject","(no subject)")),
+        "body": str(payload.get("text") or payload.get("html") or ""),
+        "to_addr": _addr_str(payload.get("to")),
+        "from_addr": _addr_str(payload.get("from")),
+        "sent_ok": True,
+        "created_at": _now()
+    };
+    # List reassignment (not .append) so the anchor's dirty tracker persists it.
+    target.inbound_messages = target.inbound_messages + [entry];
+    target.status = "negotiating";
+    target.updated_at = _now();
+
+    print(f"[negotiation] Inbound webhook: stored reply on case {case_id} owned by root {target.owner_root} (msg {entry['id']})");
+    return WebhookResult(
+        received=True, case_id=case_id, message_id=str(entry["id"]),
+        status="stored", note="Inbound reply attached to case"
+    );
 }

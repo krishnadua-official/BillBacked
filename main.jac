@@ -15,8 +15,10 @@ import from services.negotiation {
 }
 import from services.email_negotiation {
     StartNegotiation, SimulateProviderReply,
-    get_case, list_cases,
-    CaseView, CaseDetailView, LineItemView, MessageView
+    get_case, get_case_by_id, list_cases,
+    send_email_test, send_email_page, resend_inbound_webhook,
+    CaseView, CaseDetailView, LineItemView, MessageView,
+    SendEmailResult, WebhookResult
 }
 
 cl {

@@ -78,7 +78,7 @@ def:pub LandingPage() -> JsxElement {
                         <div className="mt-8">
                             <BillDropZone
                                 href="/signup"
-                                action_label="Start negotiating"
+                                action_label="Upload bill"
                             />
                         </div>
                         <p className="mt-5 text-sm text-gray-900">

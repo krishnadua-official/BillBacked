@@ -12,8 +12,19 @@ import from ".InvoiceData" {
     invoice_final_cost, invoice_provider, invoice_savings
 }
 import from ".NegotiationCallControl" { NegotiationCallControl }
-sv import from ..services.extractor { StructuredDocument, upload_bills }
+sv import from ..services.extractor { StructuredDocument, LineItem, upload_bills }
 sv import from ..services.bill { SaveExtractedBills }
+sv import from ..services.discrepancy { BillAudit, LineDiscrepancy, analyze_bill }
+sv import from ..services.patient { PatientView, my_patient }
+
+
+def _billed_vs_benchmark_line(d: LineDiscrepancy) -> str {
+    code: str = d.hcpcs if d.hcpcs else "No code";
+    if d.benchmark_amount is not None {
+        return f"{code} -- billed ${d.billed_amount:,.2f} vs Medicare-approved ${d.benchmark_amount:,.2f}";
+    }
+    return f"{code} -- billed ${d.billed_amount:,.2f}";
+}
 
 
 def:pub AuditStep(
@@ -83,6 +94,8 @@ def:pub AuditStep(
 def:pub AuditProcessPage() -> JsxElement {
     has current_step: int = 1;
     has extracted_docs: list[StructuredDocument] = [];
+    has audit: BillAudit | None = None;
+    has needs_patient_profile: bool = False;
     has error_message: str = "";
 
     location = useLocation();
@@ -138,6 +151,23 @@ def:pub AuditProcessPage() -> JsxElement {
                 docs = await upload_bills(file_inputs);
                 extracted_docs = docs;
                 await root spawn SaveExtractedBills(documents=docs);
+
+                current_step = 3;
+                patient: PatientView | None = await my_patient();
+                if patient is not None {
+                    all_items: list[LineItem] = [];
+                    for doc in docs {
+                        all_items.extend(doc.line_items);
+                    }
+                    audit = await analyze_bill(
+                        all_items,
+                        state=(patient as PatientView).state,
+                        locality=(patient as PatientView).locality,
+                        county=(patient as PatientView).county,
+                    );
+                } else {
+                    needs_patient_profile = True;
+                }
             } except Exception as e {
                 error_message = str(e);
             }
@@ -149,6 +179,8 @@ def:pub AuditProcessPage() -> JsxElement {
         nav("/dashboard/new");
     }
 
+    total_line_items: int = sum([len(doc.line_items) for doc in extracted_docs]);
+
     status_title = "Negotiation complete" if is_history else "Reading your bills";
     status_copy = (
         provider_name + " accepted the final amount. The full audit trail remains available here."
@@ -158,9 +190,19 @@ def:pub AuditProcessPage() -> JsxElement {
     if not is_history and current_step == 2 {
         status_title = "Organizing your charges";
         status_copy = "Classifying each item by service, provider, location, and Medicare context -- and filling in anything one file was missing from the others.";
+    } elif not is_history and current_step == 3 {
+        status_title = "Calculating your true cost";
+        status_copy = "Comparing every billed line item against Medicare-approved rates for your state.";
     } elif not is_history and current_step == 4 and error_message {
         status_title = "Something went wrong reading these bills";
         status_copy = error_message;
+    } elif not is_history and current_step == 4 and needs_patient_profile {
+        status_title = "We need your state to calculate savings";
+        status_copy = "Charges were extracted, but we can't price them against Medicare rates without your state on file. Add it in Settings, then upload again.";
+    } elif not is_history and current_step == 4 and audit is not None and (audit as BillAudit).flagged_count > 0 {
+        overcharge: float = (audit as BillAudit).total_overcharge;
+        status_title = f"You could save ${overcharge:,.2f}";
+        status_copy = "You will approve the true-cost bill before any provider outreach begins.";
     } elif not is_history and current_step == 4 {
         status_title = "Your audit is ready";
         status_copy = "You will approve the true-cost bill before any provider outreach begins.";
@@ -340,6 +382,71 @@ def:pub AuditProcessPage() -> JsxElement {
                         </div>
                     </section>
                 }}
+
+                {if not is_history and audit is not None {
+                    <section key="true-cost" className="border-t border-border pt-8">
+                        <h2 className="text-sm font-medium text-gray-700">Your true cost</h2>
+                        <div className="mt-5 grid grid-cols-3 gap-3">
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Billed total</p>
+                                <p className="mt-2 text-lg font-medium tracking-[-0.04em]">
+                                    {f"${(audit as BillAudit).total_billed:,.2f}"}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Medicare-approved</p>
+                                <p className="mt-2 text-lg font-medium tracking-[-0.04em]">
+                                    {f"${(audit as BillAudit).total_benchmark:,.2f}"}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-blue-100 p-4">
+                                <p className="text-xs text-gray-900">Potential savings</p>
+                                <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-blue-700">
+                                    {f"${(audit as BillAudit).total_overcharge:,.2f}"}
+                                </p>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-xs text-gray-700">
+                            {(audit as BillAudit).flagged_count} of {len((audit as BillAudit).discrepancies)} line items flagged for review.
+                        </p>
+                        <div className="mt-5 flex flex-col gap-3">
+                            {[
+                                <div
+                                    key={str(idx) + "-" + (d.hcpcs or "no-code")}
+                                    className={cn(
+                                        "rounded-2xl border p-4",
+                                        "border-blue-200 bg-blue-100/40" if d.flagged else "border-border"
+                                    )}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium text-gray-1000">
+                                                {d.description if d.description else "Unlabeled charge"}
+                                            </p>
+                                            <p className="mt-1 text-xs text-gray-700">
+                                                {_billed_vs_benchmark_line(d)}
+                                            </p>
+                                        </div>
+                                        {if d.flagged {
+                                            <span
+                                                key="flag-badge"
+                                                className="shrink-0 rounded-full bg-blue-700 px-2 py-1 text-xs font-medium text-white"
+                                            >
+                                                Flagged
+                                            </span>
+                                        }}
+                                    </div>
+                                    {if d.flag_reason {
+                                        <p key="flag-reason" className="mt-2 text-xs leading-5 text-gray-900">
+                                            {d.flag_reason}
+                                        </p>
+                                    }}
+                                </div>
+                                for (idx, d) in enumerate((audit as BillAudit).discrepancies)
+                            ]}
+                        </div>
+                    </section>
+                }}
             </div>
 
             <section
@@ -362,19 +469,47 @@ def:pub AuditProcessPage() -> JsxElement {
                         current_step={visible_step}
                         title="Read the bill"
                         description="Extract charge lines, codes, dates, and provider details."
-                    />
+                    >
+                        {if not is_history and len(extracted_docs) > 0 {
+                            <p key="step1-info" className="mt-2 text-xs text-gray-700">
+                                {len(extracted_docs)} document{"s" if len(extracted_docs) != 1 else ""} processed.
+                            </p>
+                        }}
+                    </AuditStep>
                     <AuditStep
                         step={2}
                         current_step={visible_step}
                         title="Organize the charges"
                         description="Categorize items using service, location, provider, age, and Medicare context."
-                    />
+                    >
+                        {if not is_history and total_line_items > 0 {
+                            <p key="step2-info" className="mt-2 text-xs text-gray-700">
+                                {total_line_items} line item{"s" if total_line_items != 1 else ""} organized.
+                            </p>
+                        }}
+                    </AuditStep>
                     <AuditStep
                         step={3}
                         current_step={visible_step}
                         title="Calculate the true cost"
                         description="Compare each item with historic charges for the same Medicare service."
-                    />
+                    >
+                        {if not is_history and current_step == 3 {
+                            <p key="step3-progress" className="mt-2 text-xs text-gray-700">
+                                Comparing against Medicare-approved rates for your state…
+                            </p>
+                        }}
+                        {if not is_history and audit is not None {
+                            <p key="step3-savings" className="mt-2 text-xs font-medium text-blue-700">
+                                {f"Potential savings: ${(audit as BillAudit).total_overcharge:,.2f}"}
+                            </p>
+                        }}
+                        {if not is_history and needs_patient_profile {
+                            <p key="step3-needs-profile" className="mt-2 text-xs text-gray-700">
+                                Add your state in Settings to calculate savings.
+                            </p>
+                        }}
+                    </AuditStep>
                     <AuditStep
                         step={4}
                         current_step={visible_step}

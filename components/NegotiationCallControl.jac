@@ -6,14 +6,19 @@ import from "@hugeicons/core-free-icons" {
     CallOutgoing01Icon, CheckmarkCircle01Icon, Loading03Icon
 }
 import from ".ui.button" { Button }
+sv import from ..services.discrepancy { BillAudit }
+sv import from ..services.extractor { StructuredDocument }
 sv import from ..services.negotiation {
-    NegotiationCallResult, get_demo_negotiation_call_status,
-    start_demo_negotiation_call
+    NegotiationCallResult, get_negotiation_call_status,
+    start_audit_negotiation_call
 }
 
 
 def:pub NegotiationCallControl(
-    is_available: bool = False
+    is_available: bool = False,
+    user_name: str = "",
+    documents: list[StructuredDocument] | None = None,
+    audit: BillAudit | None = None
 ) -> JsxElement {
     has result: NegotiationCallResult | None = None,
         error_message: str = "",
@@ -35,12 +40,22 @@ def:pub NegotiationCallControl(
     }
 
     async def request_call -> None {
+        if audit is None or documents is None or not documents {
+            error_message = (
+                "The reviewed audit context is not ready for a call yet."
+            );
+            return;
+        }
         error_message = "";
         result = None;
         is_calling = True;
         try {
             call_result: NegotiationCallResult = (
-                await start_demo_negotiation_call()
+                await start_audit_negotiation_call(
+                    user_name,
+                    documents as list[StructuredDocument],
+                    audit as BillAudit
+                )
             );
             result = call_result;
             if not call_result.success {
@@ -58,7 +73,7 @@ def:pub NegotiationCallControl(
         }
         try {
             status_result: NegotiationCallResult = (
-                await get_demo_negotiation_call_status(conversation_id)
+                await get_negotiation_call_status(conversation_id)
             );
             result = status_result;
             if not status_result.success {
@@ -94,7 +109,7 @@ def:pub NegotiationCallControl(
         className="mt-4 max-w-md rounded-2xl bg-background-200 p-4"
     >
         <p className="text-xs leading-5 text-gray-900">
-            The agent will call the verified test destination with a fictional negotiation case. Your uploaded bill is never sent.
+            Starting the call shares the reviewed case summary with the AI negotiation agent. Original uploaded files are not sent to ElevenLabs.
         </p>
 
         {if error_message {
@@ -202,7 +217,7 @@ def:pub NegotiationCallControl(
         </Button>
         {if not is_available {
             <p key="call-locked" className="mt-3 text-xs leading-5 text-gray-700">
-                Available after the bill audit is ready for approval.
+                Available when the audit contains provider, invoice, pricing, and disputed-item details.
             </p>
         }}
     </div>;

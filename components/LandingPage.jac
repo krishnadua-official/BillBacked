@@ -45,10 +45,10 @@ def:pub LandingPage() -> JsxElement {
                 <div className="mx-auto grid min-h-svh w-full max-w-7xl content-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div className="text-white">
                         <Badge variant="glass">Built for Medicare bills</Badge>
-                        <h1 className="mt-8 max-w-3xl text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
+                        <h1 className="mt-8 max-w-3xl text-balance text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
                             Understand your bill before you pay it.
                         </h1>
-                        <p className="mt-6 max-w-2xl text-lg leading-8">
+                        <p className="mt-6 max-w-2xl text-balance text-lg leading-8">
                             BillBacked audits every charge, estimates the fair Medicare cost, and prepares provider outreach for your approval.
                         </p>
                         <p className="mt-9 text-sm">

@@ -94,6 +94,14 @@ obj LabPriceResult {
 }
 
 
+obj CodeMatch {
+    has hcpcs: str;
+    has description: str;
+    has source: str;
+    has match_score: int;
+}
+
+
 def _row_float(row: any, col: str) -> float {
     return float(row[col]);
 }
@@ -429,3 +437,104 @@ def:pub get_lab_price(hcpcs: str, mod: str = "") -> LabPriceResult {
 
     return result;
 }
+
+
+"""Search both fee schedules by free-text description when a line item has
+no usable HCPCS/CPT code -- e.g. a bill that only says "office visit" or
+"basic metabolic panel" with the code missing, illegible, or clearly wrong.
+
+Scores each candidate by how many query words (3+ letters, to skip noise
+like "of"/"the") appear in its CMS description, checks the physician fee
+schedule (MPFS) and the lab fee schedule (CLFS), and returns the top
+`limit` matches sorted best-first. Callers should re-price a candidate's
+hcpcs with get_price/get_lab_price before treating it as the benchmark --
+this only narrows down candidates, it doesn't price anything itself.
+"""
+def:pub search_by_description(query: str, limit: int = 5) -> list[CodeMatch] {
+    words: list[str] = [w for w in query.lower().split() if len(w) > 2];
+    if len(words) == 0 {
+        return [];
+    }
+    first_word: str = words[0];
+
+    matches: list[CodeMatch] = [];
+
+    rvu = _load_rvu(False);
+    rvu_candidates = rvu[rvu["DESCRIPTION"].str.lower().str.contains(first_word, regex=False, na=False)];
+    for (_, row) in rvu_candidates.iterrows() {
+        desc: str = _row_str(row, "DESCRIPTION").lower();
+        score: int = 0;
+        for w in words {
+            if w in desc {
+                score += 1;
+            }
+        }
+        if score > 0 {
+            matches.append(CodeMatch(
+                hcpcs=_row_str(row, "HCPCS"),
+                description=_row_str(row, "DESCRIPTION"),
+                source="MPFS",
+                match_score=score,
+            ));
+        }
+    }
+
+    clfs = _load_clfs();
+    clfs_candidates = clfs[clfs["SHORTDESC"].str.lower().str.contains(first_word, regex=False, na=False)
+                           | clfs["LONGDESC"].str.lower().str.contains(first_word, regex=False, na=False)];
+    for (_, row) in clfs_candidates.iterrows() {
+        desc: str = (_row_str(row, "SHORTDESC") + " " + _row_str(row, "LONGDESC")).lower();
+        score: int = 0;
+        for w in words {
+            if w in desc {
+                score += 1;
+            }
+        }
+        if score > 0 {
+            matches.append(CodeMatch(
+                hcpcs=_row_str(row, "HCPCS"),
+                description=_row_str(row, "SHORTDESC"),
+                source="CLFS",
+                match_score=score,
+            ));
+        }
+    }
+
+    best_by_key: dict[str, CodeMatch] = {};
+    for m in matches {
+        dedup_key: str = f"{m.source}|{m.hcpcs}";
+        existing = best_by_key.get(dedup_key, None);
+        if existing is None or m.match_score > existing.match_score {
+            best_by_key[dedup_key] = m;
+        }
+    }
+    deduped: list[CodeMatch] = list(best_by_key.values());
+
+    def _score(m: CodeMatch) -> int {
+        return m.match_score;
+    }
+    deduped.sort(key=_score, reverse=True);
+    return deduped[:limit];
+}
+
+
+# sem descriptions below are consumed as LLM-facing tool docs by
+# services/discrepancy.sv.jac's LLM-driven audit agent, which calls
+# get_price and get_lab_price directly to ground its benchmark prices in
+# real CMS data instead of guessing them.
+sem get_price = "Look up what Medicare pays a physician/professional provider for a CPT or HCPCS code under the Physician Fee Schedule (MPFS), in a specific state, locality, or county. Returns a PriceResult -- always check its `error` field before trusting `found` or `selected_payment`.";
+sem get_price.hcpcs = "The CPT or HCPCS procedure code to price, e.g. '99213'.";
+sem get_price.state = "Two-letter state abbreviation, e.g. 'CA'. Provide this or county.";
+sem get_price.locality = "Medicare locality number within the state, e.g. '18'. Optional -- narrows an ambiguous state match.";
+sem get_price.locality_name = "Substring of the Medicare locality name, e.g. 'los angeles'. Alternative way to narrow a state match.";
+sem get_price.county = "County name to resolve to a Medicare locality, e.g. 'Los Angeles'. Alternative to locality/locality_name.";
+sem get_price.qpp = "Whether to use the Qualifying Alternative Payment Model conversion factor instead of the standard one. Default False unless the bill specifies QPP.";
+sem get_price.pos = "Place of service for the payment amount: 'facility' or 'non-facility'. Use 'facility' for hospital/outpatient settings, 'non-facility' for a private office visit.";
+
+sem get_lab_price = "Look up the national Clinical Laboratory Fee Schedule (CLFS) rate for a lab HCPCS code, e.g. '80048' or '0001U'. Returns a LabPriceResult -- a carrier-priced code comes back with found=True but rate=None and an explanatory error.";
+sem get_lab_price.hcpcs = "The lab HCPCS code to price, e.g. '80048'.";
+sem get_lab_price.mod = "Optional HCPCS modifier on the line item, e.g. 'QW'. Leave blank if none.";
+
+sem search_by_description = "Search the physician (MPFS) and lab (CLFS) fee schedules by free-text description to find candidate HCPCS/CPT codes for a line item that has no usable code. Use this when a bill's code is missing, illegible, or looks implausible for its stated description. Returns candidates ranked by how many query words matched -- re-price the best candidate with get_price or get_lab_price before treating it as a benchmark; a match here is a lead, not a priced result.";
+sem search_by_description.query = "The billed description text to search for, e.g. 'basic metabolic panel' or 'office visit established patient'.";
+sem search_by_description.limit = "Maximum number of candidates to return, best match first.";

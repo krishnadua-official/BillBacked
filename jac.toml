@@ -4,7 +4,7 @@ entry-point = "main.jac"
 kind = "web-app"
 jac-version = "==0.34.7"
 
-[plugins.byllm.model]
+[byllm.model]
 default_model = "${LLM_MODEL:-gemini/gemini-3.5-flash-lite}"
 api_key = "${GOOGLE_API_KEY:-}"
 

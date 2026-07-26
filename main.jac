@@ -5,8 +5,8 @@ loads global styles and declares every public and authenticated route.
 """
 
 import from services.pricing {
-    PriceResult, LocalityInfo, LabPriceResult,
-    get_price, list_localities, get_lab_price
+    PriceResult, LocalityInfo, LabPriceResult, CodeMatch,
+    get_price, list_localities, get_lab_price, search_by_description
 }
 import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bills }
 import from services.negotiation {
@@ -19,6 +19,14 @@ import from services.email_negotiation {
     send_email_test, send_email_page, resend_inbound_webhook,
     CaseView, CaseDetailView, LineItemView, MessageView,
     SendEmailResult, WebhookResult
+}
+import from services.discrepancy {
+    LineDiscrepancy, BillAudit,
+    analyze_bill, audit_bill
+}
+import from services.strategist {
+    PrioritizedDiscrepancy, DisputeStrategy,
+    build_strategy, choose_dispute_angle
 }
 
 cl {

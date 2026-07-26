@@ -6,9 +6,16 @@ import from ".ui.button" { Button }
 
 def:pub PublicHeader(
     action_label: str = "Sign in",
-    action_href: str = "/login"
+    action_href: str = "/login",
+    overlay: bool = False
 ) -> JsxElement {
-    return <header className="border-b border-border/70 bg-background">
+    header_class = (
+        "absolute inset-x-0 top-0 z-10 bg-transparent"
+        if overlay
+        else "border-b border-border/70 bg-background"
+    );
+
+    return <header className={header_class}>
         <div className="mx-auto flex h-12 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
             <Link
                 to="/"

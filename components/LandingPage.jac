@@ -15,9 +15,9 @@ import from ".AppHeader" { PublicHeader }
 
 def:pub LandingPage() -> JsxElement {
     return <div className="min-h-svh bg-background text-gray-1000">
-        <PublicHeader />
+        <PublicHeader overlay={True} />
         <main>
-            <section className="relative isolate min-h-[calc(100svh-3rem)] overflow-hidden">
+            <section className="relative isolate min-h-svh overflow-hidden">
                 <picture
                     className="absolute inset-0 -z-20 block"
                     aria-hidden="true"
@@ -40,11 +40,6 @@ def:pub LandingPage() -> JsxElement {
                         className="h-full w-full object-cover object-[28%_center] lg:object-center"
                     />
                 </picture>
-                <div
-                    className="absolute inset-0 -z-10 bg-background/75"
-                    aria-hidden="true"
-                />
-
                 <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div>
                         <p className="text-sm text-gray-700">Built for Medicare bills</p>

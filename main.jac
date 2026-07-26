@@ -21,7 +21,9 @@ import from services.email_negotiation {
 
 cl {
     import ".styles.global.css";
-    import from "@jac/runtime" { Router, Routes, Route, AuthGuard }
+    import from "@jac/runtime" {
+        Router, Routes, Route, Navigate, AuthGuard
+    }
     import from .components.AuditProcessPage { AuditProcessPage }
     import from .components.BillAuditPage { BillAuditPage }
     import from .components.BrandLogo { BrandHead }
@@ -48,6 +50,12 @@ cl {
                             element={<AuditProcessPage />}
                         />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route
+                            path="*"
+                            element={
+                                <Navigate to="/dashboard" replace={True} />
+                            }
+                        />
                     </Route>
                 </Route>
                 <Route path="/login" element={<LoginPage />} />

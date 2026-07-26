@@ -47,7 +47,8 @@ starting from a new terminal session.
 - `/dashboard/settings` — protected settings page
 
 The nested dashboard routes share `DashboardLayout`, which owns the sidebar,
-responsive header, account actions, and full-size content outlet.
+responsive header, account actions, and full-size content outlet. Removed or
+unknown dashboard paths redirect to the new-audit workspace.
 
 ## Architecture
 

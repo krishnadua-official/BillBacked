@@ -12,7 +12,7 @@ def:pub SettingsPage() -> JsxElement {
         nav("/login");
     }
 
-    return <div className="flex flex-1 justify-center px-4 py-10 sm:px-8 sm:py-14">
+    return <div className="flex flex-1 px-4 py-10 sm:px-6 sm:py-14">
         <div className="w-full max-w-3xl">
             <div>
                 <h2 className="text-3xl font-medium tracking-[-0.05em] text-gray-1000">

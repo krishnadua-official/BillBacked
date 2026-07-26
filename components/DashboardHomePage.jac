@@ -8,7 +8,7 @@ import from ".InvoiceData" {
     invoice_route, invoice_savings
 }
 import from ".ui.badge" { Badge }
-import from ".ui.card" { Card, CardContent, CardDescription, CardHeader, CardTitle }
+import from ".ui.card" { Card, CardContent }
 import from ".ui.table" {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 }
@@ -119,16 +119,8 @@ def:pub DashboardHomePage() -> JsxElement {
             </div>
         </section>
 
-        <section aria-labelledby="latest-invoices-title">
+        <section aria-label="Latest invoices">
             <Card className="gap-0 overflow-hidden py-0">
-                <CardHeader className="border-b border-border px-6 py-5">
-                    <CardTitle id="latest-invoices-title">
-                        Latest invoices
-                    </CardTitle>
-                    <CardDescription>
-                        Open an invoice to review its complete audit and negotiation.
-                    </CardDescription>
-                </CardHeader>
                 <CardContent className="p-0">
                     <Table aria-label="Latest negotiated invoices">
                         <TableHeader>

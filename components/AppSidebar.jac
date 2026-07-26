@@ -11,7 +11,7 @@ import from ".InvoiceData" {
 }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    AddInvoiceIcon, Invoice01Icon, Settings01Icon
+    AddInvoiceIcon, Invoice01Icon
 }
 
 
@@ -68,11 +68,6 @@ def:pub AppSidebar(
         if new_audit_active
         else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     );
-    settings_state = (
-        "bg-sidebar-accent text-sidebar-accent-foreground"
-        if active_path == "/dashboard/settings"
-        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-    );
 
     return <Sidebar collapsible="offcanvas">
         <SidebarHeader>
@@ -100,16 +95,6 @@ def:pub AppSidebar(
                                     >
                                         <HugeiconsIcon icon={AddInvoiceIcon} strokeWidth={2} />
                                         <span>New audit</span>
-                                    </Link>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <Link
-                                        to="/dashboard/settings"
-                                        aria-current={"page" if active_path == "/dashboard/settings" else None}
-                                        className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + settings_state}
-                                    >
-                                        <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-                                        <span>Settings</span>
                                     </Link>
                                 </SidebarMenuItem>
                             </SidebarMenu>

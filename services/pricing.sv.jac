@@ -124,6 +124,7 @@ def _load_rvu(qpp: bool) -> any {
 
 
 def _load_gpci() -> any {
+    global _gpci_cache;
     if _gpci_cache is None {
         g = pd.read_csv(f"{DATA_DIR}/GPCI2026.csv", skiprows=2, dtype=str);
         g.columns = [str(c).strip() for c in g.columns];
@@ -149,6 +150,7 @@ def _load_gpci() -> any {
 
 
 def _load_oppscap() -> any {
+    global _oppscap_cache;
     if _oppscap_cache is None {
         o = pd.read_csv(f"{DATA_DIR}/OPPSCAP_Jan.csv", dtype=str);
         o.columns = [str(c).strip() for c in o.columns];
@@ -164,6 +166,7 @@ def _load_oppscap() -> any {
 
 
 def _load_loc() -> any {
+    global _loc_cache;
     if _loc_cache is None {
         loc_df = pd.read_csv(f"{DATA_DIR}/26LOCCO.csv", skiprows=2, dtype=str);
         loc_df.columns = [str(c).strip() for c in loc_df.columns];
@@ -179,6 +182,7 @@ def _load_loc() -> any {
 
 
 def _load_anes() -> any {
+    global _anes_cache;
     if _anes_cache is None {
         anes = pd.read_csv(f"{DATA_DIR}/ANES2026.csv", dtype=str);
         anes.columns = [str(c).strip() for c in anes.columns];
@@ -191,6 +195,7 @@ def _load_anes() -> any {
 
 
 def _load_clfs() -> any {
+    global _clfs_cache;
     if _clfs_cache is None {
         df = pd.read_csv(f"{DATA_DIR}/PUF_CLFS_CY2026_Q3V1.csv", skiprows=3, dtype=str);
         df.columns = [str(c).strip() for c in df.columns];

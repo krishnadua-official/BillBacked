@@ -11,8 +11,7 @@ import from services.pricing {
 import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bills }
 import from services.negotiation {
     NegotiationCase, NegotiationCallResult,
-    get_demo_negotiation_case, get_demo_negotiation_call_status,
-    start_demo_negotiation_call
+    get_negotiation_call_status, start_audit_negotiation_call
 }
 import from services.email_negotiation {
     StartNegotiation, SimulateProviderReply, StartNegotiationFromAudit,

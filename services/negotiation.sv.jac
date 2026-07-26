@@ -1,14 +1,16 @@
-"""Fictional outbound-call negotiation sandbox.
+"""Case-aware outbound negotiation calls through ElevenLabs and Twilio.
 
-This service deliberately uses a demo case rather than uploaded bill data.
-Real patient information must not cross into telephony until the required
-privacy, consent, retention, and vendor agreements are in place.
+The service is the single boundary that converts an approved audit into the
+minimum structured context needed for a call. Original uploaded files never
+leave BillBacked through this integration.
 """
 
 import json;
 import os;
 import from urllib.error { HTTPError, URLError }
 import from urllib.request { Request, urlopen }
+import from services.discrepancy { BillAudit, LineDiscrepancy }
+import from services.extractor { StructuredDocument }
 
 
 glob ELEVENLABS_OUTBOUND_CALL_URL: str = (
@@ -21,6 +23,8 @@ glob ELEVENLABS_CONVERSATION_URL: str = (
 
 obj NegotiationCase {
     has is_demo: bool = True;
+    has case_id: str = "";
+    has user_name: str = "";
     has patient_name: str = "";
     has provider_name: str = "";
     has invoice_number: str = "";
@@ -43,6 +47,8 @@ obj NegotiationCallResult {
 
 def:protect get_demo_negotiation_case() -> NegotiationCase {
     return NegotiationCase(
+        case_id="demo-bb-1042",
+        user_name="Alex Morgan",
         patient_name="Alex Morgan",
         provider_name="Example General Hospital",
         invoice_number="BB-1042",
@@ -54,6 +60,80 @@ def:protect get_demo_negotiation_case() -> NegotiationCase {
             "$1,500 facility fee",
             "$850 suspected duplicate imaging charge",
         ]
+    );
+}
+
+
+def _disputed_item_summary(discrepancy: LineDiscrepancy) -> str {
+    identity: str = " ".join([
+        value for value in [
+            discrepancy.hcpcs.strip(),
+            discrepancy.description.strip()
+        ] if value
+    ]);
+    summary: str = identity if identity else "Unlabeled charge";
+    summary = (
+        summary
+        + f": billed {_format_amount(discrepancy.billed_amount)}"
+    );
+    if discrepancy.benchmark_amount is not None {
+        summary = (
+            summary
+            + " vs Medicare reference "
+            + _format_amount(discrepancy.benchmark_amount as float)
+        );
+    }
+    if discrepancy.flag_reason {
+        summary = summary + ". " + discrepancy.flag_reason.strip();
+    }
+    return summary;
+}
+
+
+def _build_case_from_audit(
+    user_name: str,
+    documents: list[StructuredDocument],
+    audit: BillAudit
+) -> NegotiationCase {
+    case_id: str = "";
+    patient_name: str = "";
+    provider_name: str = "";
+    invoice_number: str = "";
+    for document in documents {
+        if not case_id and document.case_id {
+            case_id = document.case_id.strip();
+        }
+        if not patient_name and document.patient_name {
+            patient_name = document.patient_name.strip();
+        }
+        if not provider_name and document.provider_name {
+            provider_name = document.provider_name.strip();
+        }
+        if not invoice_number and document.claim_number {
+            invoice_number = document.claim_number.strip();
+        }
+    }
+    resolved_user_name: str = user_name.strip() or patient_name;
+    if not invoice_number {
+        invoice_number = case_id;
+    }
+    disputed_items: list[str] = [
+        _disputed_item_summary(discrepancy)
+        for discrepancy in audit.discrepancies
+        if discrepancy.flagged
+    ];
+    return NegotiationCase(
+        is_demo=False,
+        case_id=case_id,
+        user_name=resolved_user_name,
+        patient_name=patient_name or resolved_user_name,
+        provider_name=provider_name,
+        invoice_number=invoice_number,
+        original_balance=audit.total_billed,
+        reference_amount=audit.total_benchmark,
+        target_amount=audit.total_benchmark,
+        maximum_authorized_amount=audit.total_benchmark,
+        disputed_items=disputed_items
     );
 }
 
@@ -83,16 +163,33 @@ def _format_amount(value: float) -> str {
 
 def _build_negotiation_prompt(case_data: NegotiationCase) -> str {
     disputes: str = "; ".join(case_data.disputed_items);
+    call_context: str = (
+        "This is a role-play call using fictional data. The person who answers "
+        "is pretending to be the provider's billing representative."
+        if case_data.is_demo
+        else (
+            "This is provider outreach for a reviewed BillBacked audit. "
+            "Use only the approved case facts below."
+        )
+    );
+    truthfulness_rule: str = (
+        "- Never claim this fictional case is a real patient account."
+        if case_data.is_demo
+        else (
+            "- Never claim to be the patient, the provider, an attorney, "
+            "or a government representative."
+        )
+    );
     return f"""
 You are BillBacked's calm and precise AI bill-negotiation assistant. Use the
 name, voice, language, and opening greeting configured in ElevenLabs.
-This is a role-play call using fictional data. The person who answers is
-pretending to be a billing representative for {case_data.provider_name}.
+{call_context}
 
-Immediately disclose that you are an AI assistant, that this is a fictional
-test negotiation, and that the call may be processed by service providers.
+Immediately disclose that you are an AI assistant calling for BillBacked and
+that the call may be processed by service providers.
 
 CASE
+- BillBacked member: {case_data.user_name}
 - Patient: {case_data.patient_name}
 - Provider: {case_data.provider_name}
 - Invoice: {case_data.invoice_number}
@@ -110,7 +207,7 @@ after repeating the amount and all material conditions. Reject offers above the
 maximum and request escalation or a callback instead.
 
 GUARDRAILS
-- Never claim this fictional case is a real patient account.
+{truthfulness_rule}
 - Never invent facts, codes, authorizations, laws, or supporting documents.
 - Do not provide payment-card, bank, Social Security, or medical information.
 - Do not threaten, misrepresent legal authority, or imply the reference amount
@@ -135,17 +232,29 @@ def _build_conversation_initiation_data(
             }
         },
         "dynamic_variables": {
-            "is_demo": True,
+            "is_demo": case_data.is_demo,
+            "case_id": case_data.case_id,
+            "user_name": case_data.user_name,
             "patient_name": case_data.patient_name,
             "provider_name": case_data.provider_name,
             "invoice_number": case_data.invoice_number,
             "original_balance": case_data.original_balance,
+            "original_balance_display": (
+                _format_amount(case_data.original_balance)
+            ),
             "reference_amount": case_data.reference_amount,
+            "reference_amount_display": (
+                _format_amount(case_data.reference_amount)
+            ),
             "target_amount": case_data.target_amount,
+            "target_amount_display": _format_amount(case_data.target_amount),
             "maximum_authorized_amount": case_data.maximum_authorized_amount,
-            "disputed_items": "; ".join(case_data.disputed_items),
+            "maximum_authorized_amount_display": (
+                _format_amount(case_data.maximum_authorized_amount)
+            ),
+            "disputed_items_summary": "; ".join(case_data.disputed_items),
         },
-        "user_id": "billbacked-fictional-demo",
+        "user_id": "billbacked-audit",
     };
 }
 
@@ -252,7 +361,52 @@ def _call_status_result(
 }
 
 
-def:protect start_demo_negotiation_call() -> NegotiationCallResult {
+def _case_validation_error(case_data: NegotiationCase) -> str {
+    missing: list[str] = [];
+    if not case_data.user_name {
+        missing.append("user name");
+    }
+    if not case_data.patient_name {
+        missing.append("patient name");
+    }
+    if not case_data.provider_name {
+        missing.append("provider name");
+    }
+    if not case_data.invoice_number {
+        missing.append("invoice or claim number");
+    }
+    if not case_data.disputed_items {
+        missing.append("disputed items");
+    }
+    if missing {
+        return "The audit is missing: " + ", ".join(missing) + ".";
+    }
+    if (
+        case_data.original_balance <= 0.0
+        or case_data.reference_amount <= 0.0
+        or case_data.target_amount <= 0.0
+        or case_data.maximum_authorized_amount <= 0.0
+    ) {
+        return "The audit must include positive bill and negotiation amounts.";
+    }
+    if case_data.target_amount > case_data.maximum_authorized_amount {
+        return "The negotiation target cannot exceed the authorized maximum.";
+    }
+    return "";
+}
+
+
+def _start_negotiation_call(
+    case_data: NegotiationCase
+) -> NegotiationCallResult {
+    case_error: str = _case_validation_error(case_data);
+    if case_error {
+        return NegotiationCallResult(
+            status="invalid_case",
+            message=case_error
+        );
+    }
+
     api_key: str | None = os.getenv("ELEVENLABS_API_KEY");
     agent_id: str | None = os.getenv("ELEVENLABS_AGENT_ID");
     phone_number_id: str | None = os.getenv("ELEVENLABS_PHONE_NUMBER_ID");
@@ -293,7 +447,6 @@ def:protect start_demo_negotiation_call() -> NegotiationCallResult {
         );
     }
 
-    case_data: NegotiationCase = get_demo_negotiation_case();
     try {
         response: dict[str, any] = _post_outbound_call(
             api_key as str,
@@ -341,7 +494,23 @@ def:protect start_demo_negotiation_call() -> NegotiationCallResult {
 }
 
 
-def:protect get_demo_negotiation_call_status(
+def:protect start_demo_negotiation_call() -> NegotiationCallResult {
+    return _start_negotiation_call(get_demo_negotiation_case());
+}
+
+
+def:protect start_audit_negotiation_call(
+    user_name: str,
+    documents: list[StructuredDocument],
+    audit: BillAudit
+) -> NegotiationCallResult {
+    return _start_negotiation_call(
+        _build_case_from_audit(user_name, documents, audit)
+    );
+}
+
+
+def:protect get_negotiation_call_status(
     conversation_id: str
 ) -> NegotiationCallResult {
     if (

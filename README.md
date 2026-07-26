@@ -72,7 +72,7 @@ components/
   ui/                      shared jac-shadcn primitives
 styles/global.css          design tokens and global styles
 services/
-  negotiation.sv.jac      fictional case, call guardrails, ElevenLabs boundary
+  negotiation.sv.jac      audit-to-call contract, guardrails, ElevenLabs boundary
 ```
 
 Keep invoice fixture values in `InvoiceData.cl.jac`; UI components should query
@@ -90,23 +90,31 @@ endpoints yet. Jac also supplies the authentication runtime used by `jacLogin`,
    only verified destination numbers and adds its trial announcement.
 2. In ElevenLabs, import that Twilio number with its Account SID and Auth Token.
 3. Create a conversational agent for provider outreach. Configure its voice,
-   first message, and language in ElevenLabs. In its Security settings, allow
-   the system-prompt override: the server adds the fictional case context and
-   negotiation limits for each call without replacing the configured voice or
-   greeting.
+   language, and this dynamic first message in ElevenLabs:
+
+   ```text
+   Hello, I'm Tom, BillBacked's AI negotiation assistant, calling on behalf of {{user_name}} about invoice {{invoice_number}} from {{provider_name}}. The patient is {{patient_name}}, the current billed balance is {{original_balance_display}}, and our Medicare-based reference is {{reference_amount_display}}. We need to review: {{disputed_items_summary}}. Could you confirm the current balance and connect me with someone authorized to review these charges?
+   ```
+
+   Add representative placeholder values for those variables so Preview can
+   test the greeting. In Security settings, allow the system-prompt override:
+   the server adds the reviewed audit context and negotiation limits for each
+   call without replacing the configured voice, first message, or language.
 4. Create a restricted ElevenLabs API key that can use Conversational AI.
 5. Put the API key, agent ID, imported ElevenLabs phone-number ID, and verified
    test destination in the ignored `.env.local`, then restart `jac start`.
    The final audit button starts the call directly; the browser never receives
    or submits the destination phone number. While the call is active, the
-   control polls the server-owned ElevenLabs conversation status and shows the
-   negotiation lifecycle in the audit.
+   control converts the active audit into dynamic variables, starts the call,
+   and polls the server-owned ElevenLabs conversation status so the negotiation
+   lifecycle remains visible in the audit. Original uploaded files are not sent
+   to ElevenLabs.
 
 The Account SID, Auth Token, and Twilio number document the native-integration
-setup. The server reads `TWILIO_VERIFIED_DESTINATION_NUMBER` for the fictional
-demo only. A Twilio trial can call only verified destinations. In the real
-product, that environment boundary should be replaced by the approved provider
-contact stored on the invoice record. Twilio's temporary Try Out Voice number
+setup. The server reads `TWILIO_VERIFIED_DESTINATION_NUMBER` as the current
+approved test destination. A Twilio trial can call only verified destinations.
+In the real product, that environment boundary should be replaced by the
+approved provider contact stored on the invoice record. Twilio's temporary Try Out Voice number
 cannot be imported into ElevenLabs because it is not an API-manageable number;
 an active Twilio voice number is required to obtain
 `ELEVENLABS_PHONE_NUMBER_ID`.

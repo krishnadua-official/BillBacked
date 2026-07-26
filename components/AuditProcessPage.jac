@@ -95,6 +95,7 @@ def:pub AuditProcessPage() -> JsxElement {
     has current_step: int = 1;
     has extracted_docs: list[StructuredDocument] = [];
     has audit: BillAudit | None = None;
+    has patient_profile: PatientView | None = None;
     has needs_patient_profile: bool = False;
     has error_message: str = "";
 
@@ -155,6 +156,7 @@ def:pub AuditProcessPage() -> JsxElement {
                 current_step = 3;
                 patient: PatientView | None = await my_patient();
                 if patient is not None {
+                    patient_profile = patient;
                     all_items: list[LineItem] = [];
                     for doc in docs {
                         all_items.extend(doc.line_items);
@@ -180,6 +182,13 @@ def:pub AuditProcessPage() -> JsxElement {
     }
 
     total_line_items: int = sum([len(doc.line_items) for doc in extracted_docs]);
+    call_case_ready: bool = (
+        not is_history
+        and visible_step >= 4
+        and audit is not None
+        and len(extracted_docs) > 0
+        and (audit as BillAudit).flagged_count > 0
+    );
 
     status_title = "Negotiation complete" if is_history else "Reading your bills";
     status_copy = (
@@ -524,7 +533,14 @@ def:pub AuditProcessPage() -> JsxElement {
                         is_last={True}
                     >
                         <NegotiationCallControl
-                            is_available={visible_step >= 4}
+                            is_available={call_case_ready}
+                            user_name={
+                                (patient_profile as PatientView).name
+                                if patient_profile is not None
+                                else ""
+                            }
+                            documents={extracted_docs}
+                            audit={audit}
                         />
                     </AuditStep>
                 </ol>

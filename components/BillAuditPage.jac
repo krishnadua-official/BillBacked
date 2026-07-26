@@ -64,9 +64,6 @@ def:pub BillAuditPage() -> JsxElement {
                         />
                     </span>
                 </label>
-                <p className="mt-5 text-sm leading-6 text-gray-700">
-                    Prototype only. Your file stays in this browser session.
-                </p>
             </div>
         </section>
     </div>;

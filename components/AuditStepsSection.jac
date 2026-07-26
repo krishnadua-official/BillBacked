@@ -64,7 +64,7 @@ def:pub AuditStepsSection() -> JsxElement {
                             The agent negotiates. You approve.
                         </h3>
                         <p className="mt-3 text-sm leading-6 text-gray-900">
-                            BillBacked emails or calls the provider, handles the back-and-forth, and brings the final offer to you.
+                            BillBacked calls or emails the provider, negotiates, and brings you the final offer.
                         </p>
                     </div>
                 </li>

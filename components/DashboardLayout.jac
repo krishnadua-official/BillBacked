@@ -3,7 +3,6 @@
 import from "@jac/runtime" {
     Outlet, jacLogout, useLocation, useNavigate
 }
-import from ".AccountMenu" { AccountMenu }
 import from ".AppSidebar" { AppSidebar }
 import from ".ui.sidebar" {
     SidebarInset, SidebarProvider, SidebarTrigger
@@ -45,14 +44,6 @@ def:pub DashboardLayout() -> JsxElement {
                 <h1 className="truncate text-sm font-medium text-gray-1000">
                     {page_title}
                 </h1>
-                <div className="ml-auto">
-                    <AccountMenu
-                        name="Account"
-                        email=""
-                        onLogout={sign_out}
-                        onSettings={open_settings}
-                    />
-                </div>
             </header>
             <Outlet />
         </SidebarInset>

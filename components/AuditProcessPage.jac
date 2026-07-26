@@ -11,7 +11,7 @@ import from ".InvoiceData" {
     invoice_completed_date, invoice_exists, invoice_file_name,
     invoice_final_cost, invoice_provider, invoice_savings
 }
-sv import from ..services.extractor { StructuredDocument, upload_bill }
+sv import from ..services.extractor { StructuredDocument, upload_bills }
 
 
 def:pub AuditStep(
@@ -78,7 +78,7 @@ def:pub AuditStep(
 
 def:pub AuditProcessPage() -> JsxElement {
     has current_step: int = 1;
-    has extracted: StructuredDocument | None = None;
+    has extracted_docs: list[StructuredDocument] = [];
     has error_message: str = "";
 
     location = useLocation();
@@ -95,10 +95,12 @@ def:pub AuditProcessPage() -> JsxElement {
     final_cost = "";
     savings = "";
     completed_date = "";
-    if route_state and route_state["file_name"] {
-        file_name = str(route_state["file_name"]);
-    }
-    uploaded_file: any = route_state["file"] if route_state and route_state["file"] else None;
+    file_names: list[str] = (
+        list(route_state["file_names"]) if route_state and route_state["file_names"] else []
+    );
+    uploaded_files: list[any] = (
+        list(route_state["files"]) if route_state and route_state["files"] else []
+    );
 
     if is_history {
         file_name = invoice_file_name(invoice_id) as str;
@@ -111,20 +113,24 @@ def:pub AuditProcessPage() -> JsxElement {
     visible_step = 5 if is_history else current_step;
 
     async can with entry {
-        if not is_history and uploaded_file {
+        if not is_history and uploaded_files {
             current_step = 2;
             try {
-                buf = await uploaded_file.arrayBuffer();
-                byte_arr = new(Uint8Array, buf);  # jac:ignore[E1053]
-                binary: str = "";
-                for b in byte_arr {  # jac:ignore[E1021]
-                    binary = binary + String.fromCharCode(b);  # jac:ignore[E1032,E1055]
+                file_inputs: list[dict] = [];
+                for uploaded_file in uploaded_files {
+                    buf = await uploaded_file.arrayBuffer();
+                    byte_arr = new(Uint8Array, buf);  # jac:ignore[E1053]
+                    binary: str = "";
+                    for b in byte_arr {  # jac:ignore[E1021]
+                        binary = binary + String.fromCharCode(b);  # jac:ignore[E1032,E1055]
+                    }
+                    file_b64: str = btoa(binary);  # jac:ignore[E1001]
+                    mime: str = str(uploaded_file.type) if uploaded_file.type else "";
+                    filename: str = str(uploaded_file.name);
+                    file_inputs.append({"file_b64": file_b64, "mime": mime, "filename": filename});
                 }
-                file_b64: str = btoa(binary);  # jac:ignore[E1001]
-                mime: str = str(uploaded_file.type) if uploaded_file.type else "";
-                filename: str = str(uploaded_file.name);
-                doc = await upload_bill(file_b64, mime, filename);
-                extracted = doc;
+                docs = await upload_bills(file_inputs);
+                extracted_docs = docs;
             } except Exception as e {
                 error_message = str(e);
             }
@@ -136,17 +142,17 @@ def:pub AuditProcessPage() -> JsxElement {
         nav("/dashboard");
     }
 
-    status_title = "Negotiation complete" if is_history else "Reading your bill";
+    status_title = "Negotiation complete" if is_history else "Reading your bills";
     status_copy = (
         provider_name + " accepted the final amount. The full audit trail remains available here."
         if is_history
-        else "Extracting charge lines and provider information."
+        else "Extracting charge lines and provider information from every file you uploaded."
     );
     if not is_history and current_step == 2 {
         status_title = "Organizing your charges";
-        status_copy = "Classifying each item by service, provider, location, and Medicare context.";
+        status_copy = "Classifying each item by service, provider, location, and Medicare context -- and filling in anything one file was missing from the others.";
     } elif not is_history and current_step == 4 and error_message {
-        status_title = "Something went wrong reading this bill";
+        status_title = "Something went wrong reading these bills";
         status_copy = error_message;
     } elif not is_history and current_step == 4 {
         status_title = "Your audit is ready";
@@ -180,22 +186,48 @@ def:pub AuditProcessPage() -> JsxElement {
                 </section>
 
                 <section className="border-t border-border pt-8">
-                    <h2 className="text-sm font-medium text-gray-700">Uploaded bill</h2>
-                    <div className="mt-5 flex items-center gap-4 rounded-2xl bg-background-200 p-4">
-                        <HugeiconsIcon
-                            icon={File01Icon}
-                            strokeWidth={2}
-                            className="size-5 shrink-0 text-blue-700"
-                        />
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-1000">
-                                {file_name}
-                            </p>
-                            <p className="mt-1 text-xs text-gray-700">
-                                {completed_date if is_history else "Medicare bill · PDF or image"}
-                            </p>
+                    <h2 className="text-sm font-medium text-gray-700">
+                        {"Uploaded bill" if is_history else "Uploaded bills"}
+                    </h2>
+                    {if is_history {
+                        <div
+                            key="single-file"
+                            className="mt-5 flex items-center gap-4 rounded-2xl bg-background-200 p-4"
+                        >
+                            <HugeiconsIcon
+                                icon={File01Icon}
+                                strokeWidth={2}
+                                className="size-5 shrink-0 text-blue-700"
+                            />
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-gray-1000">
+                                    {file_name}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-700">
+                                    {completed_date}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    } else {
+                        <div key="multi-files" className="mt-5 flex flex-col gap-2">
+                            {[
+                                <div
+                                    key={str(idx) + "-" + name}
+                                    className="flex items-center gap-4 rounded-2xl bg-background-200 p-4"
+                                >
+                                    <HugeiconsIcon
+                                        icon={File01Icon}
+                                        strokeWidth={2}
+                                        className="size-5 shrink-0 text-blue-700"
+                                    />
+                                    <p className="min-w-0 truncate text-sm font-medium text-gray-1000">
+                                        {name}
+                                    </p>
+                                </div>
+                                for (idx, name) in enumerate(file_names)
+                            ]}
+                        </div>
+                    }}
                     {if is_history {
                         <div
                             key="negotiated-result"
@@ -234,44 +266,62 @@ def:pub AuditProcessPage() -> JsxElement {
                     }}
                 </section>
 
-                {if not is_history and extracted {
+                {if not is_history and extracted_docs {
                     <section key="extracted-results" className="border-t border-border pt-8">
                         <div className="flex items-center justify-between gap-3">
                             <h2 className="text-sm font-medium text-gray-700">What we found</h2>
-                            {if extracted.case_id {
+                            {if extracted_docs[0].case_id {
                                 <span
                                     key="case-id"
                                     className="rounded-full bg-background-200 px-3 py-1 text-xs font-medium text-gray-900"
                                 >
-                                    Case {extracted.case_id}
+                                    Case {extracted_docs[0].case_id}
                                 </span>
                             }}
                         </div>
-                        <div className="mt-5 grid grid-cols-2 gap-3">
-                            <div className="rounded-2xl bg-background-200 p-4">
-                                <p className="text-xs text-gray-900">Patient</p>
-                                <p className="mt-2 text-sm font-medium text-gray-1000">
-                                    {extracted.patient_name if extracted.patient_name else "Not found"}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-background-200 p-4">
-                                <p className="text-xs text-gray-900">Provider</p>
-                                <p className="mt-2 text-sm font-medium text-gray-1000">
-                                    {extracted.provider_name if extracted.provider_name else "Not found"}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-background-200 p-4">
-                                <p className="text-xs text-gray-900">Document type</p>
-                                <p className="mt-2 text-sm font-medium text-gray-1000">
-                                    {str(extracted.document_type)}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-blue-100 p-4">
-                                <p className="text-xs text-gray-900">Line items found</p>
-                                <p className="mt-2 text-sm font-medium text-blue-700">
-                                    {len(extracted.line_items)}
-                                </p>
-                            </div>
+                        {if len(extracted_docs) > 1 {
+                            <p key="reconcile-note" className="mt-2 text-xs text-gray-700">
+                                Anything one file was missing (like the patient or provider name) was filled in from the others.
+                            </p>
+                        }}
+                        <div className="mt-5 flex flex-col gap-4">
+                            {[
+                                <div
+                                    key={doc.case_id + "-" + str(idx)}
+                                    className="rounded-2xl border border-border p-4"
+                                >
+                                    <p className="truncate text-xs font-medium text-gray-700">
+                                        {file_names[idx] if idx < len(file_names) else "Uploaded file"}
+                                    </p>
+                                    <div className="mt-3 grid grid-cols-2 gap-3">
+                                        <div className="rounded-2xl bg-background-200 p-4">
+                                            <p className="text-xs text-gray-900">Patient</p>
+                                            <p className="mt-2 text-sm font-medium text-gray-1000">
+                                                {doc.patient_name if doc.patient_name else "Not found"}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl bg-background-200 p-4">
+                                            <p className="text-xs text-gray-900">Provider</p>
+                                            <p className="mt-2 text-sm font-medium text-gray-1000">
+                                                {doc.provider_name if doc.provider_name else "Not found"}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl bg-background-200 p-4">
+                                            <p className="text-xs text-gray-900">Document type</p>
+                                            <p className="mt-2 text-sm font-medium text-gray-1000">
+                                                {str(doc.document_type)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl bg-blue-100 p-4">
+                                            <p className="text-xs text-gray-900">Line items found</p>
+                                            <p className="mt-2 text-sm font-medium text-blue-700">
+                                                {len(doc.line_items)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                for (idx, doc) in enumerate(extracted_docs)
+                            ]}
                         </div>
                     </section>
                 }}

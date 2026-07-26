@@ -7,10 +7,11 @@ import from ".BillDropZone" { BillDropZone }
 def:pub BillAuditPage() -> JsxElement {
     nav = useNavigate();
 
-    def handle_file(selected_file: any) -> None {
+    def handle_files(selected_files: list[any]) -> None {
+        file_names: list[str] = [f.name for f in selected_files];
         nav(
             "/dashboard/audit",
-            {"state": {"file_name": selected_file.name, "file": selected_file}}
+            {"state": {"file_names": file_names, "files": selected_files}}
         );
     }
 
@@ -27,11 +28,12 @@ def:pub BillAuditPage() -> JsxElement {
                     Upload a Medicare bill
                 </h2>
                 <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-gray-900">
-                    Add a PDF or clear photo. The agent will show every audit step in this workspace.
+                    Add every page you have for this visit -- MSN, EOB, provider bill, receipt.
+                    The agent will show every audit step in this workspace.
                 </p>
             </div>
             <div className="mt-8 rounded-[20px] bg-canvas p-5 sm:p-6">
-                <BillDropZone onFile={handle_file} />
+                <BillDropZone onFiles={handle_files} />
             </div>
         </section>
     </div>;

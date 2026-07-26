@@ -1,7 +1,9 @@
 """Shared Medicare bill picker with drag-and-drop support.
 
 With `href`, the zone is a public CTA and routes after click or file drop.
-Without `href`, the selected browser File is passed to `onFile`.
+Without `href`, every selected browser File (one or many -- the patient may
+have an EOB, an MSN, and a provider bill for the same visit) is passed to
+`onFiles` as a list.
 """
 
 import from "@jac/runtime" { Link, useNavigate }
@@ -16,9 +18,9 @@ def BillDropZoneContent(
     action_label: str
 ) -> JsxElement {
     prompt = (
-        "Drop your Medicare bill"
+        "Drop your Medicare bills"
         if dragging
-        else "Choose or drop a Medicare bill"
+        else "Choose or drop your Medicare bills"
     );
 
     return <>
@@ -34,7 +36,7 @@ def BillDropZoneContent(
             {prompt}
         </span>
         <span className="mt-2 text-sm text-gray-700">
-            PDF, PNG, or JPG
+            PDF, PNG, or JPG -- add as many as you have for this visit
         </span>
         <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform group-hover:translate-y-[-1px]">
             {action_label}
@@ -50,9 +52,9 @@ def BillDropZoneContent(
 
 def:pub BillDropZone(
     # Browser File objects cross the Jac client boundary as interop values.
-    onFile: Callable[[any], None] | None = None,
+    onFiles: Callable[[list[any]], None] | None = None,
     href: str = "",
-    action_label: str = "Upload bill",
+    action_label: str = "Upload bills",
     input_id: str = "bill-upload"
 ) -> JsxElement {
     has dragging: bool = False;
@@ -80,21 +82,24 @@ def:pub BillDropZone(
         event.stopPropagation();
         dragging = False;
         data_transfer = event.dataTransfer;
-        if data_transfer {
-            files = data_transfer.files;
-            if files and files[0] {
+        if data_transfer and data_transfer.files {
+            dropped: list[any] = list(data_transfer.files);
+            if dropped {
                 if href {
                     nav(href);
-                } elif onFile {
-                    onFile(files[0]);
+                } elif onFiles {
+                    onFiles(dropped);
                 }
             }
         }
     }
 
     def handle_change(event: ChangeEvent) -> None {
-        if onFile and event.target.files and event.target.files[0] {
-            onFile(event.target.files[0]);
+        if onFiles and event.target.files {
+            selected: list[any] = list(event.target.files);
+            if selected {
+                onFiles(selected);
+            }
         }
     }
 
@@ -142,6 +147,7 @@ def:pub BillDropZone(
                     id={input_id}
                     type="file"
                     accept=".pdf,image/*"
+                    multiple={True}
                     className="sr-only"
                     onChange={handle_change}
                 />

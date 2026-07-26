@@ -16,9 +16,6 @@ def:pub PublicHeader(
                 BillBacked<span className="text-blue-700">.</span>
             </Link>
             <div className="flex items-center gap-4">
-                <span className="hidden text-sm text-gray-700 sm:inline">
-                    Medicare bill advocate
-                </span>
                 <Link
                     to={action_href}
                     className="rounded-full px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"

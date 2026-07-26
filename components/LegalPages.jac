@@ -48,7 +48,7 @@ def:pub LegalDocument(
     children: JsxElement | list[JsxElement] | None = None
 ) -> JsxElement {
     return <div className="flex min-h-svh flex-col bg-background text-gray-1000">
-        <PublicHeader action_label="Home" action_href="/" />
+        <PublicHeader show_home={True} />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 sm:px-6 sm:py-20">
             <article>
                 <p className="text-sm text-gray-700">BillBacked prototype</p>

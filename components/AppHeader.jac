@@ -8,7 +8,8 @@ def:pub PublicHeader(
     action_label: str = "Sign in",
     action_href: str = "/login",
     overlay: bool = False,
-    inverse: bool = False
+    inverse: bool = False,
+    show_home: bool = False
 ) -> JsxElement {
     header_class = (
         "absolute inset-x-0 top-0 z-10 bg-transparent"
@@ -17,7 +18,7 @@ def:pub PublicHeader(
     );
     brand_tone = "text-white" if inverse else "text-gray-1000";
     brand_class = "inline-flex h-11 items-center rounded-lg text-base font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 " + brand_tone;
-    action_variant = "primary" if inverse else "tertiary";
+    action_variant = "primary" if inverse or show_home else "tertiary";
 
     return <header className={header_class}>
         <div className="mx-auto flex h-12 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -27,11 +28,19 @@ def:pub PublicHeader(
             >
                 BillBacked<span className={"text-white" if inverse else "text-blue-700"}>.</span>
             </Link>
-            <div className="flex items-center gap-4">
+            <nav
+                className="flex items-center gap-2"
+                aria-label="Public navigation"
+            >
+                {if show_home {
+                    <Button variant="tertiary" asChild={True}>
+                        <Link to="/">Home</Link>
+                    </Button>
+                }}
                 <Button variant={action_variant} asChild={True}>
                     <Link to={action_href}>{action_label}</Link>
                 </Button>
-            </div>
+            </nav>
         </div>
     </header>;
 }

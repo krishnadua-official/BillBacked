@@ -6,11 +6,8 @@ dashboard.
 """
 
 import from "@jac/runtime" { Link }
-import from "@hugeicons/react" { HugeiconsIcon }
-import from "@hugeicons/core-free-icons" {
-    ArrowRight01Icon, Upload01Icon
-}
 import from ".AppHeader" { PublicHeader }
+import from ".BillDropZone" { BillDropZone }
 
 
 def:pub LandingPage() -> JsxElement {
@@ -67,31 +64,12 @@ def:pub LandingPage() -> JsxElement {
                         <p className="mt-2 text-sm leading-6 text-gray-900">
                             Create a private account before choosing your PDF or photo.
                         </p>
-                        <Link
-                            to="/signup"
-                            className="group mt-8 flex min-h-64 flex-col items-center justify-center rounded-2xl bg-background p-6 text-center transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-4"
-                            aria-label="Create an account to upload a Medicare bill"
-                        >
-                            <HugeiconsIcon
-                                icon={Upload01Icon}
-                                strokeWidth={2}
-                                className="size-7 text-blue-700"
+                        <div className="mt-8">
+                            <BillDropZone
+                                href="/signup"
+                                action_label="Sign up to upload"
                             />
-                            <span className="mt-6 text-base font-medium text-gray-1000">
-                                Choose your bill
-                            </span>
-                            <span className="mt-2 text-sm text-gray-700">
-                                PDF, PNG, or JPG
-                            </span>
-                            <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform group-hover:translate-y-[-1px]">
-                                Sign up to upload
-                                <HugeiconsIcon
-                                    icon={ArrowRight01Icon}
-                                    strokeWidth={2}
-                                    className="size-4"
-                                />
-                            </span>
-                        </Link>
+                        </div>
                         <p className="mt-5 text-sm text-gray-900">
                             Already have an account?{" "}
                             <Link

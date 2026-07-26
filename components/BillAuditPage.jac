@@ -15,25 +15,6 @@ import from "@hugeicons/core-free-icons" {
 }
 
 
-def:pub WorkflowItem(
-    number: str,
-    title: str,
-    description: str
-) -> JsxElement {
-    return <li className="flex min-w-0 flex-col gap-5">
-        <span className="text-3xl font-medium tracking-[-0.05em] text-blue-700">
-            {number}
-        </span>
-        <div>
-            <p className="text-base font-medium text-gray-1000">{title}</p>
-            <p className="mt-2 max-w-xs text-sm leading-6 text-gray-900">
-                {description}
-            </p>
-        </div>
-    </li>;
-}
-
-
 def:pub AuditStep(
     step: int,
     current_step: int,
@@ -304,31 +285,6 @@ def:pub BillAuditPage() -> JsxElement {
                 </p>
             </section>
 
-            <section className="border-t border-border py-12 sm:py-16">
-                <div className="grid gap-10 sm:grid-cols-[0.55fr_1fr_1fr_1fr] sm:gap-8">
-                    <div>
-                        <p className="text-sm text-gray-700">Your audit workflow</p>
-                        <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
-                            What happens next.
-                        </h2>
-                    </div>
-                    <WorkflowItem
-                        number="01"
-                        title="Read"
-                        description="Extract every charge, code, provider, and date."
-                    />
-                    <WorkflowItem
-                        number="02"
-                        title="Calculate"
-                        description="Compare each item and estimate the true Medicare cost."
-                    />
-                    <WorkflowItem
-                        number="03"
-                        title="Negotiate"
-                        description="Prepare provider outreach and wait for your approval."
-                    />
-                </div>
-            </section>
         </main>
     </div>;
 }

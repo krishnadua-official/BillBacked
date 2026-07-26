@@ -19,6 +19,8 @@ radius = "small"
 menuAccent = "subtle"
 menuColor = "default"
 [dependencies]
+pandas = ">=2.0.0"
+
 [dependencies.npm]
 "@fontsource-variable/geist" = "*"
 "@hugeicons/core-free-icons" = "latest"

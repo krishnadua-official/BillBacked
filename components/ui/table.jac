@@ -58,7 +58,7 @@ def:pub TableHead(props: any) -> JsxElement {
         <th
             {**attrs}
             data-slot="table-head"
-            className={cn("h-9 border-b border-border px-3 text-left align-middle text-xs font-medium whitespace-nowrap text-blue-700 [&:has([role=checkbox])]:pr-0", props["className"])}
+            className={cn("h-9 border-b border-border px-3 text-left align-middle text-xs font-medium whitespace-nowrap text-table-header [&:has([role=checkbox])]:pr-0", props["className"])}
         />;
 }
 

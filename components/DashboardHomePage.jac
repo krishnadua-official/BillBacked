@@ -79,10 +79,7 @@ def:pub InvoiceDashboardRow(invoice_id: str) -> JsxElement {
             {invoice_savings(invoice_id) as str}
         </TableCell>
         <TableCell className="pl-4 pr-3 text-right">
-            <Badge
-                variant="outline"
-                className="h-6 border-success-border bg-success-background px-2.5 text-success"
-            >
+            <Badge variant="success" className="h-6 px-2.5">
                 {invoice_result(invoice_id) as str}
             </Badge>
         </TableCell>

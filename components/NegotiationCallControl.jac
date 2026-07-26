@@ -93,7 +93,7 @@ def:pub NegotiationCallControl(
     return <div
         className="mt-4 max-w-md rounded-2xl bg-background-200 p-4"
     >
-        <p className="text-xs leading-5 text-gray-700">
+        <p className="text-xs leading-5 text-gray-900">
             The agent will call the verified test destination with a fictional negotiation case. Your uploaded bill is never sent.
         </p>
 

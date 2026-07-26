@@ -84,7 +84,8 @@ def _format_amount(value: float) -> str {
 def _build_negotiation_prompt(case_data: NegotiationCase) -> str {
     disputes: str = "; ".join(case_data.disputed_items);
     return f"""
-You are Ava, BillBacked's calm and precise AI bill-negotiation assistant.
+You are BillBacked's calm and precise AI bill-negotiation assistant. Use the
+name, voice, language, and opening greeting configured in ElevenLabs.
 This is a role-play call using fictional data. The person who answers is
 pretending to be a billing representative for {case_data.provider_name}.
 
@@ -121,13 +122,31 @@ GUARDRAILS
 }
 
 
-def _build_first_message(case_data: NegotiationCase) -> str {
-    return (
-        "Hello, I’m Ava, a BillBacked AI assistant running a fictional bill "
-        "negotiation test. This call may be processed by service providers. "
-        f"I’m calling about test invoice {case_data.invoice_number} for "
-        f"{case_data.patient_name}. Could you confirm the current balance?"
-    );
+def _build_conversation_initiation_data(
+    case_data: NegotiationCase
+) -> dict[str, any] {
+    return {
+        "type": "conversation_initiation_client_data",
+        "conversation_config_override": {
+            "agent": {
+                "prompt": {
+                    "prompt": _build_negotiation_prompt(case_data)
+                }
+            }
+        },
+        "dynamic_variables": {
+            "is_demo": True,
+            "patient_name": case_data.patient_name,
+            "provider_name": case_data.provider_name,
+            "invoice_number": case_data.invoice_number,
+            "original_balance": case_data.original_balance,
+            "reference_amount": case_data.reference_amount,
+            "target_amount": case_data.target_amount,
+            "maximum_authorized_amount": case_data.maximum_authorized_amount,
+            "disputed_items": "; ".join(case_data.disputed_items),
+        },
+        "user_id": "billbacked-fictional-demo",
+    };
 }
 
 
@@ -143,30 +162,9 @@ def _post_outbound_call(
         "agent_phone_number_id": phone_number_id,
         "to_number": destination,
         "call_recording_enabled": False,
-        "conversation_initiation_client_data": {
-            "type": "conversation_initiation_client_data",
-            "conversation_config_override": {
-                "agent": {
-                    "prompt": {
-                        "prompt": _build_negotiation_prompt(case_data)
-                    },
-                    "first_message": _build_first_message(case_data),
-                    "language": "en",
-                }
-            },
-            "dynamic_variables": {
-                "is_demo": True,
-                "patient_name": case_data.patient_name,
-                "provider_name": case_data.provider_name,
-                "invoice_number": case_data.invoice_number,
-                "original_balance": case_data.original_balance,
-                "reference_amount": case_data.reference_amount,
-                "target_amount": case_data.target_amount,
-                "maximum_authorized_amount": case_data.maximum_authorized_amount,
-                "disputed_items": "; ".join(case_data.disputed_items),
-            },
-            "user_id": "billbacked-fictional-demo",
-        },
+        "conversation_initiation_client_data": (
+            _build_conversation_initiation_data(case_data)
+        ),
     };
     request_body: bytes = json.dumps(payload).encode("utf-8");
     request = Request(

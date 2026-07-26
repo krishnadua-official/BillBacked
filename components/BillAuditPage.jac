@@ -262,23 +262,8 @@ def:pub BillAuditPage() -> JsxElement {
 
     return <div className="min-h-svh bg-background text-gray-1000">
         <DashboardHeader />
-        <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-16">
-            <section className="flex flex-col justify-center py-14 sm:py-20 lg:min-h-[520px] lg:py-24">
-                <p className="text-sm text-gray-700">New Medicare audit</p>
-                <div className="my-10">
-                    <h1 className="max-w-2xl text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
-                        Start with your medical bill.
-                    </h1>
-                    <p className="mt-6 max-w-xl text-lg leading-7 text-gray-900">
-                        Upload a PDF or clear photo. The agent will read every charge, compare Medicare pricing, and show its work here.
-                    </p>
-                </div>
-                <p className="text-sm font-medium text-blue-700">
-                    You approve every provider message.
-                </p>
-            </section>
-
-            <section className="my-10 rounded-[20px] bg-canvas p-6 sm:my-14 sm:p-8 lg:my-16">
+        <main className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+            <section className="mx-auto my-10 max-w-2xl rounded-[20px] bg-canvas p-6 sm:my-14 sm:p-8 lg:my-16">
                 <div>
                     <h2 className="text-2xl font-medium tracking-[-0.04em]">
                         Upload your bill
@@ -319,7 +304,7 @@ def:pub BillAuditPage() -> JsxElement {
                 </p>
             </section>
 
-            <section className="border-t border-border py-12 sm:py-16 lg:col-span-2">
+            <section className="border-t border-border py-12 sm:py-16">
                 <div className="grid gap-10 sm:grid-cols-[0.55fr_1fr_1fr_1fr] sm:gap-8">
                     <div>
                         <p className="text-sm text-gray-700">Your audit workflow</p>

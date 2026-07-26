@@ -69,7 +69,7 @@ def:pub AccountMenu(
                         className="flex min-w-0 flex-col"
                     >
                         <span className="truncate text-sm font-medium">{name}</span>
-                        <span className="truncate text-xs text-gray-700">
+                        <span className="truncate text-xs text-gray-900">
                             {description}
                         </span>
                     </span>

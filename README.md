@@ -89,9 +89,11 @@ endpoints yet. Jac also supplies the authentication runtime used by `jacLogin`,
 1. Buy or claim a Twilio number with voice capability. A Twilio trial can call
    only verified destination numbers and adds its trial announcement.
 2. In ElevenLabs, import that Twilio number with its Account SID and Auth Token.
-3. Create a conversational agent for provider outreach. In its Security
-   settings, allow overrides for the system prompt and first message; the
-   server supplies both for every fictional call.
+3. Create a conversational agent for provider outreach. Configure its voice,
+   first message, and language in ElevenLabs. In its Security settings, allow
+   the system-prompt override: the server adds the fictional case context and
+   negotiation limits for each call without replacing the configured voice or
+   greeting.
 4. Create a restricted ElevenLabs API key that can use Conversational AI.
 5. Put the API key, agent ID, imported ElevenLabs phone-number ID, and verified
    test destination in the ignored `.env.local`, then restart `jac start`.

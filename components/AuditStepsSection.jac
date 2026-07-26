@@ -22,7 +22,7 @@ def:pub AuditStepsSection() -> JsxElement {
             <ol className="mx-auto mt-12 grid max-w-6xl overflow-hidden rounded-[20px] border border-border/70 bg-background md:grid-cols-3 md:divide-x md:divide-border/70">
                 <li className="flex min-h-[300px] flex-col justify-between border-b border-border/70 p-6 sm:p-8 md:border-b-0">
                     <span
-                        className="text-5xl font-medium tracking-[-0.04em] text-gray-600"
+                        className="text-5xl font-medium tracking-[-0.04em] text-gray-700"
                         aria-hidden="true"
                     >
                         1
@@ -38,7 +38,7 @@ def:pub AuditStepsSection() -> JsxElement {
                 </li>
                 <li className="flex min-h-[300px] flex-col justify-between border-b border-border/70 p-6 sm:p-8 md:border-b-0">
                     <span
-                        className="text-5xl font-medium tracking-[-0.04em] text-gray-600"
+                        className="text-5xl font-medium tracking-[-0.04em] text-gray-700"
                         aria-hidden="true"
                     >
                         2
@@ -54,7 +54,7 @@ def:pub AuditStepsSection() -> JsxElement {
                 </li>
                 <li className="flex min-h-[300px] flex-col justify-between p-6 sm:p-8">
                     <span
-                        className="text-5xl font-medium tracking-[-0.04em] text-gray-600"
+                        className="text-5xl font-medium tracking-[-0.04em] text-gray-700"
                         aria-hidden="true"
                     >
                         3

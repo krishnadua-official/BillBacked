@@ -10,6 +10,29 @@ test "demo negotiation case is safe and bounded" {
 }
 
 
+test "outbound calls preserve the configured ElevenLabs voice and greeting" {
+    case_data = get_demo_negotiation_case();
+    initiation_data = _build_conversation_initiation_data(case_data);
+    overrides = (
+        initiation_data["conversation_config_override"] as dict[str, any]
+    );
+    agent_override = overrides["agent"] as dict[str, any];
+    prompt_override = agent_override["prompt"] as dict[str, any];
+    dynamic_variables = initiation_data["dynamic_variables"] as dict[str, any];
+
+    assert "first_message" not in agent_override;
+    assert "language" not in agent_override;
+    assert "tts" not in overrides;
+    prompt = prompt_override["prompt"] as str;
+    assert case_data.provider_name in prompt;
+    assert "You are Ava" not in prompt;
+    assert (
+        dynamic_variables["invoice_number"]
+        == case_data.invoice_number
+    );
+}
+
+
 test "outbound call destination is required on the server" {
     previous_destination = os.environ.pop(
         "TWILIO_VERIFIED_DESTINATION_NUMBER",

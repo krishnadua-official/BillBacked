@@ -69,7 +69,7 @@ def:pub InvoiceHistoryLink(
                 <span className="truncate text-sm font-medium">
                     {provider}
                 </span>
-                <span className="truncate text-xs font-normal text-gray-700">
+                <span className="truncate text-xs font-normal text-gray-900">
                     {savings_label}
                 </span>
             </span>

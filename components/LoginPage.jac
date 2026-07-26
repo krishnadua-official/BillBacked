@@ -107,7 +107,9 @@ def:pub LoginPage() -> JsxElement {
                     }}
                     <Button
                         type="submit"
-                        className="h-11 w-full rounded-full"
+                        variant="primary"
+                        size="lg"
+                        className="w-full"
                         disabled={busy}
                     >
                         {if busy {

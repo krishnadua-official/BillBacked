@@ -1,6 +1,7 @@
 """Shared public and authenticated navigation."""
 
 import from "@jac/runtime" { Link, jacLogout, useNavigate }
+import from ".ui.button" { Button }
 
 
 def:pub PublicHeader(
@@ -16,12 +17,9 @@ def:pub PublicHeader(
                 BillBacked<span className="text-blue-700">.</span>
             </Link>
             <div className="flex items-center gap-4">
-                <Link
-                    to={action_href}
-                    className="inline-flex h-11 items-center rounded-full px-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-                >
-                    {action_label}
-                </Link>
+                <Button variant="tertiary" asChild={True}>
+                    <Link to={action_href}>{action_label}</Link>
+                </Button>
             </div>
         </div>
     </header>;
@@ -45,13 +43,13 @@ def:pub DashboardHeader() -> JsxElement {
                 BillBacked<span className="text-blue-700">.</span>
             </Link>
             <div className="flex items-center gap-4">
-                <button
+                <Button
                     type="button"
-                    className="inline-flex h-11 items-center rounded-full px-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+                    variant="tertiary"
                     onClick={sign_out}
                 >
                     Sign out
-                </button>
+                </Button>
             </div>
         </div>
     </header>;

@@ -207,7 +207,8 @@ def:pub AuditProcessPage() -> JsxElement {
                     {if visible_step >= 4 {
                         <Button
                             key="upload-another"
-                            className="mt-6 h-10 rounded-xl px-5"
+                            variant="primary"
+                            className="mt-6"
                             onClick={upload_another}
                         >
                             Start a new audit

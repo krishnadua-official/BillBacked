@@ -69,8 +69,8 @@ def:pub SettingsPage() -> JsxElement {
                     </p>
                     <Button
                         type="button"
-                        variant="outline"
-                        className="mt-5 h-10 rounded-xl px-4"
+                        variant="secondary"
+                        className="mt-5"
                         onClick={sign_out}
                     >
                         Sign out

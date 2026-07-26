@@ -13,25 +13,6 @@ import from "@hugeicons/core-free-icons" {
 import from ".AppHeader" { PublicHeader }
 
 
-def:pub LandingStep(
-    number: str,
-    title: str,
-    description: str
-) -> JsxElement {
-    return <li className="flex min-w-0 flex-col gap-5">
-        <span className="text-3xl font-medium tracking-[-0.05em] text-blue-700">
-            {number}
-        </span>
-        <div>
-            <p className="text-base font-medium text-gray-1000">{title}</p>
-            <p className="mt-2 max-w-xs text-sm leading-6 text-gray-900">
-                {description}
-            </p>
-        </div>
-    </li>;
-}
-
-
 def:pub LandingPage() -> JsxElement {
     return <div className="min-h-svh bg-background text-gray-1000">
         <PublicHeader />
@@ -98,32 +79,6 @@ def:pub LandingPage() -> JsxElement {
                         </Link>
                     </p>
                 </section>
-            </section>
-
-            <section className="mx-auto w-full max-w-7xl border-t border-border px-4 py-14 sm:px-6 sm:py-16">
-                <div className="grid gap-10 sm:grid-cols-[0.7fr_1fr_1fr_1fr] sm:gap-8">
-                    <div>
-                        <p className="text-sm text-gray-700">How it works</p>
-                        <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
-                            From bill to fair price.
-                        </h2>
-                    </div>
-                    <LandingStep
-                        number="01"
-                        title="Read"
-                        description="Extract every charge, code, provider, and date."
-                    />
-                    <LandingStep
-                        number="02"
-                        title="Calculate"
-                        description="Compare each item and estimate the true Medicare cost."
-                    />
-                    <LandingStep
-                        number="03"
-                        title="Negotiate"
-                        description="Prepare provider outreach and wait for your approval."
-                    />
-                </div>
             </section>
         </main>
     </div>;

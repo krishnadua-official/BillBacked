@@ -37,7 +37,7 @@ def:pub LandingPage() -> JsxElement {
                         className="h-full w-full object-cover object-[28%_center] lg:object-center"
                     />
                 </picture>
-                <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
+                <div className="mx-auto grid min-h-svh w-full max-w-7xl content-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div>
                         <p className="text-sm text-gray-700">Built for Medicare bills</p>
                         <h1 className="mt-8 max-w-3xl text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">

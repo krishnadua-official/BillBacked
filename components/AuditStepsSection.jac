@@ -31,7 +31,7 @@ def:pub AuditStepsSection() -> JsxElement {
                         <h3 className="text-xl font-medium tracking-[-0.02em]">
                             Upload your Medicare bill
                         </h3>
-                        <p className="mt-3 text-base leading-7 text-gray-900">
+                        <p className="mt-3 text-sm leading-6 text-gray-900">
                             Add a PDF or clear photo. BillBacked reads every charge, code, provider, and date.
                         </p>
                     </div>
@@ -47,7 +47,7 @@ def:pub AuditStepsSection() -> JsxElement {
                         <h3 className="text-xl font-medium tracking-[-0.02em]">
                             Review the true cost
                         </h3>
-                        <p className="mt-3 text-base leading-7 text-gray-900">
+                        <p className="mt-3 text-sm leading-6 text-gray-900">
                             Each line item is compared with Medicare pricing to flag errors and estimate a fair amount.
                         </p>
                     </div>
@@ -63,7 +63,7 @@ def:pub AuditStepsSection() -> JsxElement {
                         <h3 className="text-xl font-medium tracking-[-0.02em]">
                             Approve provider outreach
                         </h3>
-                        <p className="mt-3 text-base leading-7 text-gray-900">
+                        <p className="mt-3 text-sm leading-6 text-gray-900">
                             Review the adjusted bill and draft message before BillBacked contacts the provider.
                         </p>
                     </div>

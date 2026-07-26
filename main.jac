@@ -14,7 +14,7 @@ import from services.negotiation {
     get_demo_negotiation_case, start_demo_negotiation_call
 }
 import from services.email_negotiation {
-    StartNegotiation, SimulateProviderReply,
+    StartNegotiation, SimulateProviderReply, StartNegotiationFromAudit,
     get_case, get_case_by_id, list_cases,
     send_email_test, send_email_page, resend_inbound_webhook,
     CaseView, CaseDetailView, LineItemView, MessageView,

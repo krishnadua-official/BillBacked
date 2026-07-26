@@ -11,6 +11,7 @@ import from ".InvoiceData" {
     invoice_completed_date, invoice_exists, invoice_file_name,
     invoice_final_cost, invoice_provider, invoice_savings
 }
+import from ".NegotiationCallControl" { NegotiationCallControl }
 sv import from ..services.extractor { StructuredDocument, upload_bills }
 
 
@@ -19,7 +20,8 @@ def:pub AuditStep(
     current_step: int,
     title: str,
     description: str,
-    is_last: bool = False
+    is_last: bool = False,
+    children: any = None
 ) -> JsxElement {
     is_complete = step < current_step;
     is_current = step == current_step;
@@ -71,6 +73,7 @@ def:pub AuditStep(
             )}>
                 {description}
             </p>
+            {children}
         </div>
     </li>;
 }
@@ -382,7 +385,11 @@ def:pub AuditProcessPage() -> JsxElement {
                         title="Negotiate by email or phone"
                         description="The agent contacts the provider, follows up, and brings you the final offer."
                         is_last={True}
-                    />
+                    >
+                        <NegotiationCallControl
+                            is_available={visible_step >= 4}
+                        />
+                    </AuditStep>
                 </ol>
 
                 {if visible_step == 4 and not is_history {

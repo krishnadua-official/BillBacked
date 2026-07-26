@@ -66,6 +66,7 @@ components/
   AccountMenu.jac          shared header/sidebar account-menu composition
   BillAuditPage.jac        bill upload workspace
   AuditProcessPage.jac     active and completed audit views
+  NegotiationCallControl.jac compact final-step ElevenLabs call action
   InvoiceData.cl.jac       typed prototype invoice source and query boundary
   SettingsPage.jac         account settings
   ui/                      shared jac-shadcn primitives
@@ -110,6 +111,7 @@ jac check components/InvoiceData.cl.jac
 jac check components/AccountMenu.jac
 jac check components/AppSidebar.jac
 jac check components/AuditProcessPage.jac
+jac check components/NegotiationCallControl.jac
 jac check services/negotiation.sv.jac
 jac test services/negotiation.test.jac
 jac check main.jac

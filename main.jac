@@ -5,8 +5,8 @@ loads global styles and declares every public and authenticated route.
 """
 
 import from services.pricing {
-    PriceResult, LocalityInfo, LabPriceResult,
-    get_price, list_localities, get_lab_price
+    PriceResult, LocalityInfo, LabPriceResult, CodeMatch,
+    get_price, list_localities, get_lab_price, search_by_description
 }
 import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bills }
 import from services.negotiation {
@@ -14,11 +14,19 @@ import from services.negotiation {
     get_demo_negotiation_case, start_demo_negotiation_call
 }
 import from services.email_negotiation {
-    StartNegotiation, SimulateProviderReply,
+    StartNegotiation, SimulateProviderReply, StartNegotiationFromAudit,
     get_case, get_case_by_id, list_cases,
     send_email_test, send_email_page, resend_inbound_webhook,
     CaseView, CaseDetailView, LineItemView, MessageView,
     SendEmailResult, WebhookResult
+}
+import from services.discrepancy {
+    LineDiscrepancy, BillAudit,
+    analyze_bill, audit_bill
+}
+import from services.patient {
+    Patient, PatientView, CoverageType,
+    my_patient, SavePatientProfile
 }
 
 cl {
@@ -29,6 +37,7 @@ cl {
     import from .components.AuditProcessPage { AuditProcessPage }
     import from .components.BillAuditPage { BillAuditPage }
     import from .components.BrandLogo { BrandHead }
+    import from .components.DashboardHomePage { DashboardHomePage }
     import from .components.DashboardLayout { DashboardLayout }
     import from .components.LandingPage { LandingPage }
     import from .components.LegalPages { PrivacyPage, TermsPage }
@@ -45,7 +54,8 @@ cl {
                 <Route path="/" element={<LandingPage />} />
                 <Route element={<AuthGuard redirect="/login" />}>
                     <Route path="/dashboard" element={<DashboardLayout />}>
-                        <Route index element={<BillAuditPage />} />
+                        <Route index element={<DashboardHomePage />} />
+                        <Route path="new" element={<BillAuditPage />} />
                         <Route path="audit" element={<AuditProcessPage />} />
                         <Route
                             path="invoices/:invoice_id"

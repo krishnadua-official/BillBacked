@@ -1,6 +1,8 @@
 .jac/
 .playwright-cli/
 node_modules/
+
+# Local environment files and credentials
 .env
 .env.*
 !.env.example

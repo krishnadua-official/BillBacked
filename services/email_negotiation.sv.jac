@@ -26,6 +26,7 @@ import requests;
 import from datetime { datetime, timezone }
 import from http { HTTPMethod }
 import from fastapi.responses { HTMLResponse }
+import from services.discrepancy { BillAudit, LineDiscrepancy }
 
 
 # Demo-only knob. In the real product this comes from the parsed bill; for the
@@ -273,6 +274,82 @@ def _load_mock_case_bundle -> CaseBundle {
         patient_name="Margaret Chen",
         strategist_angle="Every line item is priced 5-10x the Medicare-approved rate with no documented modifiers or complexity justification. Lead with the aggregate delta and demand adjustment to Medicare Physician Fee Schedule rates for all listed CPT codes.",
         items=items
+    );
+}
+
+
+"""Which category a discrepancy falls into for the negotiation email's
+line-item table. Priority order matters when a line trips more than one
+flag: duplicate billing and code mismatches are provable independent of
+any pricing argument, so they lead; a plain overcharge needs a resolved
+benchmark to be citable; anything left unresolved is the weakest claim.
+"""
+def _discrepancy_type_for(d: LineDiscrepancy) -> str {
+    if d.is_duplicate {
+        return "duplicate";
+    }
+    if d.code_mismatch {
+        return "mismatched_code";
+    }
+    if d.benchmark_amount is None {
+        return "unresolved";
+    }
+    if d.flagged {
+        return "overcharge";
+    }
+    return "none";
+}
+
+
+"""Pick the strongest single line item to lead the dispute email with, now
+that there is no Agent 3 (Strategist) to make that call. Deterministic
+placeholder: the flagged discrepancy with the largest dollar overcharge,
+same ranking analyze_bill's own callers used before Agent 3 was removed.
+"""
+def _lead_argument_for(audit: BillAudit) -> str {
+    best: LineDiscrepancy | None = None;
+    best_impact: float = 0.0;
+    for d in audit.discrepancies {
+        if not d.flagged {
+            continue;
+        }
+        impact: float = d.overcharge_amount if d.overcharge_amount is not None else 0.0;
+        if best is None or impact > best_impact {
+            best = d;
+            best_impact = impact;
+        }
+    }
+    if best is not None and (best as LineDiscrepancy).flag_reason {
+        return (best as LineDiscrepancy).flag_reason;
+    }
+    return f"This bill was reviewed against Medicare-approved rates; {audit.flagged_count} of {len(audit.discrepancies)} line items were flagged for discrepancies totaling ${audit.total_overcharge:,.2f}.";
+}
+
+
+"""The real counterpart to _load_mock_case_bundle -- builds a CaseBundle
+from Agent 2's actual BillAudit instead of the hardcoded demo data. Added
+alongside the mock rather than replacing it, so the existing
+StartNegotiation walker (and whatever a teammate has already wired to it)
+keeps working unchanged; see StartNegotiationFromAudit below for the real
+counterpart to StartNegotiation.
+"""
+def _build_case_bundle_from_audit(provider_name: str, patient_name: str, audit: BillAudit) -> CaseBundle {
+    items: list[LineItemBundle] = [
+        LineItemBundle(
+            code=d.hcpcs,
+            description=d.description,
+            charged_amount=d.billed_amount,
+            medicare_rate=d.benchmark_amount if d.benchmark_amount is not None else 0.0,
+            discrepancy_type=_discrepancy_type_for(d),
+            discrepancy_amount=d.overcharge_amount if d.overcharge_amount is not None else 0.0,
+        ) for d in audit.discrepancies
+    ];
+    return CaseBundle(
+        provider_name=provider_name,
+        provider_email="",
+        patient_name=patient_name,
+        strategist_angle=_lead_argument_for(audit),
+        items=items,
     );
 }
 
@@ -557,6 +634,71 @@ walker StartNegotiation {
 }
 
 
+"""Real counterpart to StartNegotiation: same persistence and email-draft
+logic, but built from Agent 2's actual BillAudit instead of the hardcoded
+demo case. This is the seam _load_mock_case_bundle's docstring described --
+the frontend calls upload_bills (Agent 1) then analyze_bill (Agent 2)
+itself and hands the resulting BillAudit straight in here, so there is no
+separate persisted extraction step to wire up first.
+"""
+walker StartNegotiationFromAudit {
+    has provider_name: str;
+    has patient_name: str;
+    has audit: BillAudit;
+    has reports: list[CaseDetailView] = [];
+
+    can run with Root entry {
+        bundle = _build_case_bundle_from_audit(self.provider_name, self.patient_name, self.audit);
+
+        now = _now();
+        new_case = Case(
+            provider_name=bundle.provider_name,
+            provider_email=bundle.provider_email,
+            patient_name=bundle.patient_name,
+            status="drafting",
+            original_total=self.audit.total_billed,
+            disputed_total=self.audit.total_benchmark,
+            strategist_angle=bundle.strategist_angle,
+            owner_root=jid(here),
+            created_at=now,
+            updated_at=now
+        );
+        here ++> new_case;
+
+        for it in bundle.items {
+            new_case ++> LineItem(
+                code=it.code, description=it.description,
+                charged_amount=it.charged_amount, medicare_rate=it.medicare_rate,
+                discrepancy_type=it.discrepancy_type, discrepancy_amount=it.discrepancy_amount
+            );
+        }
+
+        # Expose this specific case for the anonymous inbound webhook, same as
+        # StartNegotiation -- see the note there on the capability-url pattern.
+        grant(new_case, level=WritePerm);
+
+        draft = _compose_dispute_email(bundle);
+        sent_ok = _send_email(TEST_RECIPIENT, draft.subject, draft.body, jid(new_case));
+
+        new_case ++> Message(
+            direction="OUTBOUND",
+            subject=draft.subject,
+            body=draft.body,
+            to_addr=TEST_RECIPIENT,
+            from_addr="BillBacked <onboarding@resend.dev>",
+            sent_ok=sent_ok,
+            created_at=_now()
+        );
+
+        new_case.status = "sent";
+        new_case.updated_at = _now();
+
+        self.reports.append(new_case.to_detail_view());
+        report new_case.to_detail_view();
+    }
+}
+
+
 """Dev-only. Fabricate a plausible provider pushback, persist it as an inbound
 message, then compose and send a counter-response."""
 walker SimulateProviderReply {
@@ -784,7 +926,7 @@ glob SEND_EMAIL_PAGE_HTML: str = """<!doctype html>
 </html>""";
 
 
-@restspec(method=HTTPMethod.GET, path="/send-email", envelope=False, produces="text/html")
+@restspec(method=HTTPMethod.GET, path="/send-email")
 def:pub send_email_page -> str {
     return SEND_EMAIL_PAGE_HTML;
 }

@@ -4,7 +4,7 @@ entry-point = "main.jac"
 kind = "web-app"
 jac-version = "==0.34.7"
 
-[plugins.byllm.model]
+[byllm.model]
 default_model = "${LLM_MODEL:-gemini/gemini-3.5-flash-lite}"
 api_key = "${GOOGLE_API_KEY:-}"
 
@@ -60,7 +60,7 @@ plugins = ["tailwindcss()"]
 lib_imports = ["import tailwindcss from '@tailwindcss/vite'"]
 
 [client.app_meta_data]
-title = "BillBacked"
+title = "BillBacked — Medicare Bill Audits"
 description = "Audit Medicare bills, understand the true cost, and prepare a provider negotiation."
 keywords = "Medicare, medical bills, bill audit, healthcare"
 author = "BillBacked"

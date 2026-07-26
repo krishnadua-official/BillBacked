@@ -144,7 +144,7 @@ def:pub AuditProcessPage() -> JsxElement {
     }
 
     def upload_another() {
-        nav("/dashboard");
+        nav("/dashboard/new");
     }
 
     status_title = "Negotiation complete" if is_history else "Reading your bills";

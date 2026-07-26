@@ -73,3 +73,30 @@ test "lab price lookup accepts an explicit modifier" {
     assert result.found;
     assert result.rate is not None;
 }
+
+test "search_by_description finds a known lab code by name" {
+    matches = search_by_description("basic metabolic panel", limit=5);
+    assert len(matches) > 0;
+    codes = [m.hcpcs for m in matches];
+    assert "80048" in codes;
+}
+
+test "search_by_description does not return duplicate hcpcs+source pairs" {
+    matches = search_by_description("basic metabolic panel", limit=10);
+    seen: list[str] = [];
+    for m in matches {
+        key: str = f"{m.source}|{m.hcpcs}";
+        assert key not in seen, f"duplicate candidate: {key}";
+        seen.append(key);
+    }
+}
+
+test "search_by_description respects the limit" {
+    matches = search_by_description("blood test", limit=2);
+    assert len(matches) <= 2;
+}
+
+test "search_by_description on gibberish returns no matches" {
+    matches = search_by_description("zzqxx nonsense gibberish", limit=5);
+    assert len(matches) == 0;
+}

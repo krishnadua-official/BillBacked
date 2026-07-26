@@ -1,6 +1,7 @@
 """Minimal public footer for the BillBacked landing page."""
 
 import from "@jac/runtime" { Link }
+import from ".BrandLogo" { BrandLockup }
 
 
 def:pub SiteFooter() -> JsxElement {
@@ -11,7 +12,7 @@ def:pub SiteFooter() -> JsxElement {
                     to="/"
                     className="inline-flex rounded-md text-base font-semibold tracking-[-0.03em] text-gray-1000 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
                 >
-                    BillBacked<span className="text-blue-700">.</span>
+                    <BrandLockup />
                 </Link>
                 <p className="mt-1 text-sm text-gray-900">
                     The agent negotiates. You approve the result.

@@ -1,6 +1,7 @@
 """Shared public and authenticated navigation."""
 
 import from "@jac/runtime" { Link, jacLogout, useNavigate }
+import from ".BrandLogo" { BrandLockup }
 import from ".ui.button" { Button }
 
 
@@ -26,7 +27,7 @@ def:pub PublicHeader(
                 to="/"
                 className={brand_class}
             >
-                BillBacked<span className={"text-white" if inverse else "text-blue-700"}>.</span>
+                <BrandLockup />
             </Link>
             <nav
                 className="flex items-center gap-2"
@@ -60,7 +61,7 @@ def:pub DashboardHeader() -> JsxElement {
                 to="/dashboard"
                 className="inline-flex h-11 items-center rounded-lg text-base font-semibold tracking-[-0.03em] text-gray-1000 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
             >
-                BillBacked<span className="text-blue-700">.</span>
+                <BrandLockup />
             </Link>
             <div className="flex items-center gap-4">
                 <Button

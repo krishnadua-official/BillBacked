@@ -19,6 +19,7 @@ cl {
     import from "@jac/runtime" { Router, Routes, Route, AuthGuard }
     import from .components.AuditProcessPage { AuditProcessPage }
     import from .components.BillAuditPage { BillAuditPage }
+    import from .components.BrandLogo { BrandHead }
     import from .components.DashboardLayout { DashboardLayout }
     import from .components.LandingPage { LandingPage }
     import from .components.LegalPages { PrivacyPage, TermsPage }
@@ -30,6 +31,7 @@ cl {
 
     def:pub app() -> JsxElement {
         return <Router>
+            <BrandHead />
             <ScrollToTop />
             <Routes>
                 <Route path="/" element={<LandingPage />} />

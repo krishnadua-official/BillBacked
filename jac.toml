@@ -65,6 +65,7 @@ description = "Audit Medicare bills, understand the true cost, and prepare a pro
 keywords = "Medicare, medical bills, bill audit, healthcare"
 author = "BillBacked"
 theme_color = "#171717"
+icon = "/assets/brand/favicon.ico"
 og_type = "website"
 og_title = "BillBacked"
 og_description = "Understand what your Medicare bill should cost."

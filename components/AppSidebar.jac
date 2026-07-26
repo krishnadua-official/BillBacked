@@ -2,6 +2,7 @@
 
 import from "@jac/runtime" { Link }
 import from ".AccountMenu" { AccountMenu }
+import from ".BrandLogo" { BrandLockup }
 import from ".ui.sidebar" {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
     SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuItem
@@ -96,7 +97,7 @@ def:pub AppSidebar(
                 to="/dashboard"
                 className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
             >
-                BillBacked<span className="text-blue-700">.</span>
+                <BrandLockup mark_size_class="size-4" />
             </Link>
         </SidebarHeader>
 

@@ -1,5 +1,7 @@
 # BillBacked
 
+![BillBacked landing page](assets/readme/billbacked-landing-page.png)
+
 BillBacked is a Jac hackathon prototype for auditing Medicare medical bills.
 The public landing page explains the product; authenticated users upload a bill,
 follow the audit process, review past negotiated invoices, and manage account

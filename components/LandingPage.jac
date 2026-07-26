@@ -37,6 +37,10 @@ def:pub LandingPage() -> JsxElement {
                         className="h-full w-full object-cover object-[28%_center] lg:object-center"
                     />
                 </picture>
+                <div
+                    className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-r from-black/55 to-transparent"
+                    aria-hidden="true"
+                />
                 <div className="mx-auto grid min-h-svh w-full max-w-7xl content-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div className="text-white">
                         <p className="text-sm">Built for Medicare bills</p>

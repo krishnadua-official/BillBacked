@@ -24,11 +24,13 @@ cl {
     import from .components.LegalPages { PrivacyPage, TermsPage }
     import from .components.LoginPage { LoginPage }
     import from .components.NegotiationCallPage { NegotiationCallPage }
+    import from .components.ScrollToTop { ScrollToTop }
     import from .components.SettingsPage { SettingsPage }
     import from .components.SignupPage { SignupPage }
 
     def:pub app() -> JsxElement {
         return <Router>
+            <ScrollToTop />
             <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route element={<AuthGuard redirect="/login" />}>

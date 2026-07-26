@@ -110,7 +110,9 @@ def:pub AuditProcessPage() -> JsxElement {
         completed_date = invoice_completed_date(invoice_id) as str;
     }
 
-    visible_step = 5 if is_history else current_step;
+    # Completed invoices sit beyond the final outreach step so every stage is
+    # rendered as complete. Active audits stop for approval before outreach.
+    visible_step = 6 if is_history else current_step;
 
     async can with entry {
         if not is_history and uploaded_files {
@@ -172,7 +174,15 @@ def:pub AuditProcessPage() -> JsxElement {
                             strokeWidth={2}
                             className="size-4"
                         />
-                        {"Complete" if visible_step >= 4 else "Audit in progress"}
+                        {
+                            "Negotiation complete"
+                            if is_history
+                            else (
+                                "Audit ready"
+                                if visible_step >= 4
+                                else "Audit in progress"
+                            )
+                        }
                     </div>
                     <h1
                         id="audit-status-title"
@@ -363,8 +373,14 @@ def:pub AuditProcessPage() -> JsxElement {
                     <AuditStep
                         step={4}
                         current_step={visible_step}
-                        title="Prepare the negotiation"
-                        description="Draft the true-cost bill and provider email for your approval."
+                        title="Review and approve"
+                        description="Review the true-cost bill and approve the provider outreach."
+                    />
+                    <AuditStep
+                        step={5}
+                        current_step={visible_step}
+                        title="Negotiate by email or phone"
+                        description="The agent contacts the provider, follows up, and brings you the final offer."
                         is_last={True}
                     />
                 </ol>
@@ -384,7 +400,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                 Ready for your approval
                             </p>
                             <p className="mt-1 text-sm leading-6 text-gray-900">
-                                No provider message has been sent. Review and negotiation come next.
+                                No email or phone call has started. Review the true-cost bill and approve outreach first.
                             </p>
                         </div>
                     </div>

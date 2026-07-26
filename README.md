@@ -12,9 +12,10 @@ session, and the agent steps and invoice history are fixtures. The code is
 organized so those fixtures can later be replaced by persisted Jac models
 without rewriting the dashboard components.
 
-The optional outbound-call sandbox is different: it can place a real call to a
-verified test phone through ElevenLabs and Twilio, but it only uses a fixed,
-fictional invoice. It never sends an uploaded bill.
+The ElevenLabs/Twilio boundary is reserved for the final outreach stage. The
+standalone self-call screen has been removed: an audit must finish reading,
+organizing, pricing, and approval before the agent may contact a provider by
+email or phone.
 
 ## Run locally
 
@@ -28,9 +29,9 @@ jac start --dev main.jac
 ```
 
 Open <http://localhost:8000>. Client files hot-reload while the server is
-running. The app works without the ElevenLabs variables, but the test-call
-button reports the missing server configuration until all three are set.
-Source `.env` again when starting from a new terminal session.
+running. The app works without the ElevenLabs variables; they are only needed
+when the final provider-call integration is enabled. Source `.env` again when
+starting from a new terminal session.
 
 ## Routes
 
@@ -43,7 +44,6 @@ Source `.env` again when starting from a new terminal session.
 - `/dashboard` — protected new-audit workspace
 - `/dashboard/audit` — protected live agent-process prototype
 - `/dashboard/invoices/:invoice_id` — protected completed invoice detail
-- `/dashboard/call-test` — protected fictional negotiation self-call
 - `/dashboard/settings` — protected settings page
 
 The nested dashboard routes share `DashboardLayout`, which owns the sidebar,
@@ -65,7 +65,6 @@ components/
   AccountMenu.jac          shared header/sidebar account-menu composition
   BillAuditPage.jac        bill upload workspace
   AuditProcessPage.jac     active and completed audit views
-  NegotiationCallPage.jac fictional outbound-call sandbox
   InvoiceData.cl.jac       typed prototype invoice source and query boundary
   SettingsPage.jac         account settings
   ui/                      shared jac-shadcn primitives
@@ -83,17 +82,19 @@ CMS datasets under `pricing/`. The prototype audit UI is not wired to those
 endpoints yet. Jac also supplies the authentication runtime used by `jacLogin`,
 `jacSignup`, `jacLogout`, and `AuthGuard`.
 
-### ElevenLabs and Twilio setup
+### ElevenLabs and Twilio setup for final outreach
 
 1. Buy or claim a Twilio number with voice capability. A Twilio trial can call
    only verified destination numbers and adds its trial announcement.
 2. In ElevenLabs, import that Twilio number with its Account SID and Auth Token.
-3. Create a separate conversational agent for this sandbox. In its Security
+3. Create a conversational agent for provider outreach. In its Security
    settings, allow overrides for the system prompt and first message; the
    server supplies both for every fictional call.
 4. Create a restricted ElevenLabs API key that can use Conversational AI.
 5. Put the API key, agent ID, and imported ElevenLabs phone-number ID in a local
-   `.env` based on `.env.example`, then restart `jac start`.
+   `.env` based on `.env.example`, then restart `jac start`. The backend
+   boundary remains available for the approved final stage, but no standalone
+   test-call route is exposed in the product UI.
 
 Twilio and ElevenLabs can both charge for usage. Trial restrictions and
 included quotas change over time, so confirm them in both dashboards before
@@ -108,7 +109,6 @@ jac check components/InvoiceData.cl.jac
 jac check components/AccountMenu.jac
 jac check components/AppSidebar.jac
 jac check components/AuditProcessPage.jac
-jac check components/NegotiationCallPage.jac
 jac check services/negotiation.sv.jac
 jac test services/negotiation.test.jac
 jac check main.jac

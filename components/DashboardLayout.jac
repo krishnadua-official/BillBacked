@@ -28,8 +28,6 @@ def:pub DashboardLayout() -> JsxElement {
         page_title = "New audit";
     } elif active_path == "/dashboard/settings" {
         page_title = "Settings";
-    } elif active_path == "/dashboard/call-test" {
-        page_title = "Test negotiation call";
     }
 
     return <SidebarProvider>

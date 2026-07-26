@@ -29,6 +29,7 @@ def ensure_head_link(
 
 def:pub BrandHead() -> JsxElement {
     can with entry {
+        document.title = "Billbacked";
         ensure_head_link(
             "icon",
             "/assets/brand/favicon.ico",

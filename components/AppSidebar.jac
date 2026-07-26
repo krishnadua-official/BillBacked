@@ -12,7 +12,7 @@ import from ".InvoiceData" {
 }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    AddInvoiceIcon, CallOutgoing01Icon, Invoice01Icon
+    AddInvoiceIcon, Invoice01Icon
 }
 
 
@@ -89,7 +89,6 @@ def:pub AppSidebar(
     new_audit_active = (
         active_path == "/dashboard" or active_path == "/dashboard/audit"
     );
-    call_test_active = active_path == "/dashboard/call-test";
 
     return <Sidebar collapsible="offcanvas">
         <SidebarHeader className="flex h-12 shrink-0 items-center border-b border-sidebar-border/70 px-3 py-0">
@@ -118,18 +117,6 @@ def:pub AppSidebar(
                                         />
                                     }
                                     active={new_audit_active}
-                                />
-                                <PrimarySidebarLink
-                                    route="/dashboard/call-test"
-                                    label="Test negotiation call"
-                                    icon={
-                                        <HugeiconsIcon
-                                            icon={CallOutgoing01Icon}
-                                            strokeWidth={2}
-                                            className="size-4 shrink-0"
-                                        />
-                                    }
-                                    active={call_test_active}
                                 />
                             </SidebarMenu>
                         </div>

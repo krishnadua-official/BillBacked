@@ -127,7 +127,7 @@ def:pub PrivacyPage() -> JsxElement {
 
         <LegalSection title="6. Provider outreach and your approval">
             <p>
-                BillBacked is designed so that you review the estimated true cost and any draft communication before provider outreach begins. The current prototype does not send provider email or call a real provider. Its optional test-call sandbox can call a phone number you enter using only a clearly identified fictional invoice; it does not send an uploaded bill. A production release must clearly identify each action that will share information and obtain the approval described in the interface.
+                BillBacked is designed so that you review the estimated true cost and any draft communication before provider outreach begins. The current prototype does not send provider email or call a real provider. Email or phone outreach is shown only as the final stage after bill review and your approval. A production release must clearly identify each action that will share information and obtain the approval described in the interface.
             </p>
         </LegalSection>
 
@@ -269,7 +269,7 @@ def:pub TermsPage() -> JsxElement {
                 You are responsible for reviewing extracted information, calculations, deadlines, and draft messages. BillBacked is designed to require your approval before outreach. You remain responsible for the accuracy and consequences of any communication you approve.
             </p>
             <p>
-                The current prototype does not send provider email, call a real provider, submit appeals, make payments, or bind you to a settlement. The optional self-call sandbox is a role-play using fictional data and cannot authorize a real agreement.
+                The current prototype does not send provider email, call a real provider, submit appeals, make payments, or bind you to a settlement.
             </p>
         </LegalSection>
 

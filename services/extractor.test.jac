@@ -54,3 +54,14 @@ test "extract_and_structure handles a different patient's ER bill distinctly" {
     assert len(doc.line_items) > 1, "this bill has multiple ER line items";
     assert doc.total_patient_owed is not None;
 }
+
+test "every upload gets its own case_id, distinct across uploads" {
+    with open("Sample Data/patient-01-margaret-chen/eob.pdf", "rb") as f {
+        data: bytes = f.read();
+    }
+    first = extract_and_structure(data, "application/pdf", "eob.pdf");
+    second = extract_and_structure(data, "application/pdf", "eob.pdf");
+    assert first.case_id != "", "expected a case_id to be assigned on upload";
+    assert first.case_id.startswith("BB-"), "expected the BB- case number prefix";
+    assert first.case_id != second.case_id, "each upload should get its own case_id";
+}

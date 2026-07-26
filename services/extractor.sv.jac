@@ -14,6 +14,8 @@ the way a person would instead of pattern-matching one layout at a time.
 
 import from lib.extract_text { extract_from_bytes, raw_text as _concat_raw_text }
 import from base64 { b64decode }
+import from datetime { datetime, timezone }
+import from uuid { uuid4 }
 
 
 glob _MIME_BY_EXT: dict[str, str] = {
@@ -25,6 +27,17 @@ glob _MIME_BY_EXT: dict[str, str] = {
 def _guess_mime(filename: str) -> str {
     ext: str = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else "";
     return _MIME_BY_EXT.get(ext, "application/pdf");
+}
+
+
+"""A short, unique reference for one uploaded document -- e.g. 'BB-20260726-7F3A2C'.
+Stable across the email thread an agent later opens with the provider, so the
+patient, the provider, and any agent reading the subject line all know which
+upload they're discussing without persistence or a database lookup."""
+def _generate_case_id() -> str {
+    date_part: str = datetime.now(timezone.utc).strftime("%Y%m%d");
+    suffix: str = uuid4().hex[:6].upper();
+    return f"BB-{date_part}-{suffix}";
 }
 
 
@@ -63,6 +76,7 @@ sem LineItem.patient_owed = "What the patient owes/owed for this line (labeled O
 
 
 obj StructuredDocument {
+    has case_id: str = "";
     has document_type: DocumentType = DocumentType.UNKNOWN;
     has care_type: str = "UNKNOWN";
     has patient_name: str = "";
@@ -76,6 +90,7 @@ obj StructuredDocument {
     has line_items: list[LineItem] = [];
     has review_flags: list[str] = [];
 }
+sem StructuredDocument.case_id = "Always leave as empty string -- assigned by the system after extraction, never printed on the document itself.";
 sem StructuredDocument.care_type = "One or two words for the kind of care (office visit, emergency room, imaging, surgery, physical therapy, pharmacy, hospital, ...), or UNKNOWN if not evident.";
 sem StructuredDocument.patient_name = "The patient's full name, normalized to 'Last, First' (or 'Last, First M') form regardless of how it was printed. Empty string if truly absent.";
 sem StructuredDocument.provider_name = "The billing provider/facility name (not the insurer), e.g. 'Stanford Hospital'.";
@@ -103,7 +118,9 @@ the seam this will eventually replace)."""
 def:protect extract_and_structure(file_bytes: bytes, mime: str, filename: str) -> StructuredDocument {
     raw: dict[str, any] = extract_from_bytes(file_bytes, mime);
     text: str = _concat_raw_text(raw);
-    return structure_document(text, filename);
+    doc: StructuredDocument = structure_document(text, filename);
+    doc.case_id = _generate_case_id();
+    return doc;
 }
 
 

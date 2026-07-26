@@ -236,7 +236,17 @@ def:pub AuditProcessPage() -> JsxElement {
 
                 {if not is_history and extracted {
                     <section key="extracted-results" className="border-t border-border pt-8">
-                        <h2 className="text-sm font-medium text-gray-700">What we found</h2>
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 className="text-sm font-medium text-gray-700">What we found</h2>
+                            {if extracted.case_id {
+                                <span
+                                    key="case-id"
+                                    className="rounded-full bg-background-200 px-3 py-1 text-xs font-medium text-gray-900"
+                                >
+                                    Case {extracted.case_id}
+                                </span>
+                            }}
+                        </div>
                         <div className="mt-5 grid grid-cols-2 gap-3">
                             <div className="rounded-2xl bg-background-200 p-4">
                                 <p className="text-xs text-gray-900">Patient</p>

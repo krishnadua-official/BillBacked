@@ -2,6 +2,7 @@
 
 import ".styles.global.css";
 import from "@jac/runtime" { Router, Routes, Route, AuthGuard }
+import from .components.AuditProcessPage { AuditProcessPage }
 import from .components.BillAuditPage { BillAuditPage }
 import from .components.LandingPage { LandingPage }
 import from .components.LoginPage { LoginPage }
@@ -13,6 +14,7 @@ def:pub app() -> JsxElement {
             <Route path="/" element={<LandingPage />} />
             <Route element={<AuthGuard redirect="/login" />}>
                 <Route path="/dashboard" element={<BillAuditPage />} />
+                <Route path="/dashboard/audit" element={<AuditProcessPage />} />
             </Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

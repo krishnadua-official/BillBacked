@@ -926,7 +926,7 @@ glob SEND_EMAIL_PAGE_HTML: str = """<!doctype html>
 </html>""";
 
 
-@restspec(method=HTTPMethod.GET, path="/send-email", envelope=False, produces="text/html")
+@restspec(method=HTTPMethod.GET, path="/send-email")
 def:pub send_email_page -> str {
     return SEND_EMAIL_PAGE_HTML;
 }

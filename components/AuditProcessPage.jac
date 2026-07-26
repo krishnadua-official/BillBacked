@@ -1,12 +1,11 @@
 """Protected page that shows the Medicare bill agent process."""
 
-import from "@jac/runtime" { useLocation, useNavigate }
+import from "@jac/runtime" { useLocation, useNavigate, useParams }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
     CheckmarkCircle01Icon, Clock01Icon, File01Icon, Mail01Icon
 }
 import from ".ui.button" { Button }
-import from ".AppHeader" { DashboardHeader }
 import from "..lib.utils" { cn }
 
 
@@ -77,38 +76,78 @@ def:pub AuditProcessPage() -> JsxElement {
 
     location = useLocation();
     nav = useNavigate();
+    params = useParams();
     route_state = location["state"];
+    invoice_id_value = params["invoice_id"];
+    invoice_id = str(invoice_id_value) if invoice_id_value else "";
+    is_history = True if invoice_id else False;
     file_name = "Uploaded Medicare bill";
+    provider_name = "Your provider";
+    final_cost = "";
+    savings = "";
+    completed_date = "";
     if route_state and route_state["file_name"] {
         file_name = str(route_state["file_name"]);
     }
 
+    if invoice_id == "st-joseph" {
+        file_name = "St. Joseph medical bill.pdf";
+        provider_name = "St. Joseph Medical Center";
+        final_cost = "$2,160";
+        savings = "$1,240";
+        completed_date = "Negotiated June 18, 2026";
+    } elif invoice_id == "mercy-general" {
+        file_name = "Mercy General statement.pdf";
+        provider_name = "Mercy General Hospital";
+        final_cost = "$1,480";
+        savings = "$860";
+        completed_date = "Negotiated May 29, 2026";
+    } elif invoice_id == "northside-imaging" {
+        file_name = "Northside imaging invoice.pdf";
+        provider_name = "Northside Imaging";
+        final_cost = "$625";
+        savings = "$475";
+        completed_date = "Negotiated April 11, 2026";
+    } elif invoice_id == "lakeshore-cardio" {
+        file_name = "Lakeshore cardiology bill.pdf";
+        provider_name = "Lakeshore Cardiology";
+        final_cost = "$1,090";
+        savings = "$690";
+        completed_date = "Negotiated March 7, 2026";
+    }
+
+    visible_step = 5 if is_history else current_step;
+
     can with entry {
-        setTimeout(lambda -> None { current_step = 2; }, 900);
-        setTimeout(lambda -> None { current_step = 3; }, 1900);
-        setTimeout(lambda -> None { current_step = 4; }, 3100);
+        if not is_history {
+            setTimeout(lambda -> None { current_step = 2; }, 900);
+            setTimeout(lambda -> None { current_step = 3; }, 1900);
+            setTimeout(lambda -> None { current_step = 4; }, 3100);
+        }
     }
 
     def upload_another() {
         nav("/dashboard");
     }
 
-    status_title = "Reading your bill";
-    status_copy = "Extracting charge lines and provider information.";
-    if current_step == 2 {
+    status_title = "Negotiation complete" if is_history else "Reading your bill";
+    status_copy = (
+        provider_name + " accepted the final amount. The full audit trail remains available here."
+        if is_history
+        else "Extracting charge lines and provider information."
+    );
+    if not is_history and current_step == 2 {
         status_title = "Organizing your charges";
         status_copy = "Classifying each item by service, provider, location, and Medicare context.";
-    } elif current_step == 3 {
+    } elif not is_history and current_step == 3 {
         status_title = "Calculating the true cost";
         status_copy = "Comparing each charge with historical rates for the same Medicare service.";
-    } elif current_step == 4 {
+    } elif not is_history and current_step == 4 {
         status_title = "Your audit is ready";
         status_copy = "You will approve the true-cost bill before any provider outreach begins.";
     }
 
-    return <div className="min-h-svh bg-background text-gray-1000">
-        <DashboardHeader />
-        <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] lg:gap-14">
+    return <div className="mx-auto grid w-full max-w-7xl flex-1 gap-10 px-4 py-10 text-gray-1000 sm:px-8 sm:py-14 lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] lg:gap-14">
             <div className="flex min-w-0 flex-col gap-10">
                 <section
                     className="py-2"
@@ -121,7 +160,7 @@ def:pub AuditProcessPage() -> JsxElement {
                             strokeWidth={2}
                             className="size-4"
                         />
-                        {"Complete" if current_step == 4 else "Audit in progress"}
+                        {"Complete" if visible_step >= 4 else "Audit in progress"}
                     </div>
                     <h1
                         id="audit-status-title"
@@ -134,9 +173,9 @@ def:pub AuditProcessPage() -> JsxElement {
                     </p>
                 </section>
 
-                <section className="rounded-[20px] bg-background-200 p-6 sm:p-7">
+                <section className="border-t border-border pt-8">
                     <h2 className="text-sm font-medium text-gray-700">Uploaded bill</h2>
-                    <div className="mt-6 flex items-center gap-4 rounded-2xl bg-background-200 p-4">
+                    <div className="mt-5 flex items-center gap-4 rounded-2xl bg-background-200 p-4">
                         <HugeiconsIcon
                             icon={File01Icon}
                             strokeWidth={2}
@@ -147,20 +186,43 @@ def:pub AuditProcessPage() -> JsxElement {
                                 {file_name}
                             </p>
                             <p className="mt-1 text-xs text-gray-700">
-                                Medicare bill · PDF or image
+                                {completed_date if is_history else "Medicare bill · PDF or image"}
                             </p>
                         </div>
                     </div>
-                    <p className="mt-5 text-sm leading-6 text-gray-900">
-                        Nothing is sent to the provider until you approve the final number.
-                    </p>
-                    {if current_step == 4 {
+                    {if is_history {
+                        <div
+                            key="negotiated-result"
+                            className="mt-4 grid grid-cols-2 gap-3"
+                        >
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Final bill</p>
+                                <p className="mt-2 text-xl font-medium tracking-[-0.04em]">
+                                    {final_cost}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-blue-100 p-4">
+                                <p className="text-xs text-gray-900">You saved</p>
+                                <p className="mt-2 text-xl font-medium tracking-[-0.04em] text-blue-700">
+                                    {savings}
+                                </p>
+                            </div>
+                        </div>
+                    } else {
+                        <p
+                            key="approval-copy"
+                            className="mt-5 text-sm leading-6 text-gray-900"
+                        >
+                            Nothing is sent to the provider until you approve the final number.
+                        </p>
+                    }}
+                    {if visible_step >= 4 {
                         <Button
                             key="upload-another"
-                            className="mt-6 h-10 rounded-full px-5"
+                            className="mt-6 h-10 rounded-xl px-5"
                             onClick={upload_another}
                         >
-                            Upload another bill
+                            Start a new audit
                         </Button>
                     }}
                 </section>
@@ -183,32 +245,32 @@ def:pub AuditProcessPage() -> JsxElement {
                 <ol className="mt-10">
                     <AuditStep
                         step={1}
-                        current_step={current_step}
+                        current_step={visible_step}
                         title="Read the bill"
                         description="Extract charge lines, codes, dates, and provider details."
                     />
                     <AuditStep
                         step={2}
-                        current_step={current_step}
+                        current_step={visible_step}
                         title="Organize the charges"
                         description="Categorize items using service, location, provider, age, and Medicare context."
                     />
                     <AuditStep
                         step={3}
-                        current_step={current_step}
+                        current_step={visible_step}
                         title="Calculate the true cost"
                         description="Compare each item with historic charges for the same Medicare service."
                     />
                     <AuditStep
                         step={4}
-                        current_step={current_step}
+                        current_step={visible_step}
                         title="Prepare the negotiation"
                         description="Draft the true-cost bill and provider email for your approval."
                         is_last={True}
                     />
                 </ol>
 
-                {if current_step == 4 {
+                {if visible_step == 4 and not is_history {
                     <div
                         key="approval-note"
                         className="mt-10 flex items-start gap-4 rounded-2xl bg-blue-100 p-5"
@@ -229,6 +291,5 @@ def:pub AuditProcessPage() -> JsxElement {
                     </div>
                 }}
             </section>
-        </main>
     </div>;
 }

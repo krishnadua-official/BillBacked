@@ -1,7 +1,6 @@
 """Protected Medicare bill upload page."""
 
 import from "@jac/runtime" { useNavigate }
-import from ".AppHeader" { DashboardHeader }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
     ArrowRight01Icon, Upload01Icon
@@ -21,21 +20,26 @@ def:pub BillAuditPage() -> JsxElement {
         }
     }
 
-    return <div className="min-h-svh bg-background text-gray-1000">
-        <DashboardHeader />
-        <main className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-            <section className="mx-auto my-10 max-w-2xl rounded-[20px] bg-canvas p-6 sm:my-14 sm:p-8 lg:my-16">
-                <div>
-                    <h2 className="text-2xl font-medium tracking-[-0.04em]">
-                        Upload your bill
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-gray-900">
-                        Use a PDF or clear photo. You will see the agent work step by step.
-                    </p>
-                </div>
+    return <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8 sm:py-14">
+        <section
+            className="w-full max-w-2xl"
+            aria-labelledby="new-audit-title"
+        >
+            <div className="text-center">
+                <h2
+                    id="new-audit-title"
+                    className="text-3xl font-medium tracking-[-0.05em] text-gray-1000 sm:text-4xl"
+                >
+                    Upload a Medicare bill
+                </h2>
+                <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-gray-900">
+                    Add a PDF or clear photo. The agent will show every audit step in this workspace.
+                </p>
+            </div>
+            <div className="mt-8 rounded-[20px] bg-canvas p-5 sm:p-6">
                 <label
                     htmlFor="bill-upload"
-                    className="group mt-8 flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-2xl bg-background p-6 text-center transition-colors hover:bg-blue-100 focus-within:ring-2 focus-within:ring-blue-700 focus-within:ring-offset-4"
+                    className="group flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-2xl bg-background p-6 text-center transition-colors hover:bg-blue-100 focus-within:ring-2 focus-within:ring-blue-700 focus-within:ring-offset-4"
                 >
                     <input
                         id="bill-upload"
@@ -63,7 +67,7 @@ def:pub BillAuditPage() -> JsxElement {
                 <p className="mt-5 text-sm leading-6 text-gray-700">
                     Prototype only. Your file stays in this browser session.
                 </p>
-            </section>
-        </main>
+            </div>
+        </section>
     </div>;
 }

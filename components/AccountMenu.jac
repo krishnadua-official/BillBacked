@@ -25,7 +25,7 @@ import from ".ui.dropdown_menu" {
     DropdownMenuSeparator, DropdownMenuTrigger
 }
 import from "@hugeicons/react" { HugeiconsIcon }
-import from "@hugeicons/core-free-icons" { Logout01Icon }
+import from "@hugeicons/core-free-icons" { Logout01Icon, Settings01Icon }
 
 
 def _initials(name: str) -> str {
@@ -34,11 +34,22 @@ def _initials(name: str) -> str {
 }
 
 
-def:pub AccountMenu(name: str, email: str, onLogout: Callable[[], None]) -> JsxElement {
+def:pub AccountMenu(
+    name: str,
+    email: str,
+    onLogout: Callable[[], None],
+    onSettings: Callable[[], None] | None = None
+) -> JsxElement {
     # Radix fires `onSelect` for keyboard AND pointer activation; `onClick`
     # only covers the mouse.
     def handle_logout(_: any) {
         onLogout();
+    }
+
+    def handle_settings(_: any) {
+        if onSettings {
+            onSettings();
+        }
     }
 
     return <DropdownMenu>
@@ -62,12 +73,24 @@ def:pub AccountMenu(name: str, email: str, onLogout: Callable[[], None]) -> JsxE
             <DropdownMenuLabel>
                 <div className="flex flex-col">
                     <span className="truncate text-sm font-medium">{name}</span>
-                    <span className="truncate text-xs font-normal text-muted-foreground">
-                        {email}
-                    </span>
+                    {if email {
+                        <span className="truncate text-xs font-normal text-muted-foreground">
+                            {email}
+                        </span>
+                    }}
                 </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {if onSettings {
+                <DropdownMenuItem
+                    key="settings"
+                    onSelect={handle_settings}
+                    className="cursor-pointer"
+                >
+                    <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+                    Settings
+                </DropdownMenuItem>
+            }}
             <DropdownMenuItem onSelect={handle_logout} className="cursor-pointer">
                 <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} />
                 Sign out

@@ -54,10 +54,9 @@ def:pub LandingPage() -> JsxElement {
                     className="rounded-[20px] bg-canvas p-6 sm:p-8"
                     aria-labelledby="landing-upload-title"
                 >
-                    <p className="text-sm text-gray-700">Start your audit</p>
                     <h2
                         id="landing-upload-title"
-                        className="mt-2 text-2xl font-medium tracking-[-0.04em]"
+                        className="text-2xl font-medium tracking-[-0.04em]"
                     >
                         Upload a Medicare bill.
                     </h2>

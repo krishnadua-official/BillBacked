@@ -40,7 +40,7 @@ def:pub DashboardLayout() -> JsxElement {
             onSettings={open_settings}
         />
         <SidebarInset>
-            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/70 bg-background/95 px-4 backdrop-blur sm:px-6">
+            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border/70 bg-background/95 px-4 backdrop-blur sm:px-6">
                 <SidebarTrigger className="size-9" />
                 <h1 className="truncate text-sm font-medium text-gray-1000">
                     {page_title}

@@ -12,7 +12,7 @@ import from ".InvoiceData" {
 }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    AddInvoiceIcon, Invoice01Icon
+    AddInvoiceIcon, Home01Icon, Invoice01Icon
 }
 
 
@@ -86,8 +86,9 @@ def:pub AppSidebar(
     onSettings: Callable[[], None] | None = None
 ) -> JsxElement {
     history_ids: list[str] = invoice_ids() as list[str];
+    home_active = active_path == "/dashboard";
     new_audit_active = (
-        active_path == "/dashboard" or active_path == "/dashboard/audit"
+        active_path == "/dashboard/new" or active_path == "/dashboard/audit"
     );
 
     return <Sidebar collapsible="offcanvas">
@@ -108,6 +109,18 @@ def:pub AppSidebar(
                             <SidebarMenu>
                                 <PrimarySidebarLink
                                     route="/dashboard"
+                                    label="Home"
+                                    icon={
+                                        <HugeiconsIcon
+                                            icon={Home01Icon}
+                                            strokeWidth={2}
+                                            className="size-4 shrink-0"
+                                        />
+                                    }
+                                    active={home_active}
+                                />
+                                <PrimarySidebarLink
+                                    route="/dashboard/new"
                                     label="New audit"
                                     icon={
                                         <HugeiconsIcon

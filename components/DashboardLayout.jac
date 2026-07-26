@@ -25,6 +25,8 @@ def:pub DashboardLayout() -> JsxElement {
 
     page_title = "Invoice audit";
     if active_path == "/dashboard" {
+        page_title = "Dashboard";
+    } elif active_path == "/dashboard/new" {
         page_title = "New audit";
     } elif active_path == "/dashboard/settings" {
         page_title = "Settings";

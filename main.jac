@@ -13,6 +13,11 @@ import from services.negotiation {
     NegotiationCase, NegotiationCallResult,
     get_demo_negotiation_case, start_demo_negotiation_call
 }
+import from services.email_negotiation {
+    StartNegotiation, SimulateProviderReply,
+    get_case, list_cases,
+    CaseView, CaseDetailView, LineItemView, MessageView
+}
 
 cl {
     import ".styles.global.css";

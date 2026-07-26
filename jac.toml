@@ -22,7 +22,7 @@ pymupdf = "~=1.28"
 pdfplumber = "~=0.11"
 pytesseract = "~=0.3"
 Pillow = "~=12.3"
-
+litellm = "~=1.83"
 [dependencies.npm]
 "@fontsource-variable/geist" = "*"
 "@hugeicons/core-free-icons" = "latest"

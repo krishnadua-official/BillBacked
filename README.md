@@ -25,7 +25,9 @@ running.
 `main.jac` is the single client route table:
 
 - `/` — public landing page with a sign-in-gated upload prompt
-- `/login` and `/signup` — runtime-backed authentication
+- `/login` and `/signup` — runtime-backed authentication with required Terms
+  and Privacy consent before account creation
+- `/privacy` and `/terms` — public prototype legal notices
 - `/dashboard` — protected new-audit workspace
 - `/dashboard/audit` — protected live agent-process prototype
 - `/dashboard/invoices/:invoice_id` — protected completed invoice detail
@@ -42,6 +44,9 @@ components/
   LandingPage.jac          public product page
   LoginPage.jac            sign-in flow
   SignupPage.jac           account creation flow
+  SignupConsentStep.jac    required legal-consent step before signup
+  LegalPages.jac           shared legal-page layout, Privacy, and Terms
+  SiteFooter.jac           public navigation including legal links
   DashboardLayout.jac      authenticated app shell
   AppSidebar.jac           navigation and invoice-history list
   AccountMenu.jac          shared header/sidebar account-menu composition

@@ -18,7 +18,7 @@ def:pub SiteFooter() -> JsxElement {
                 </p>
             </div>
             <nav
-                className="flex items-center gap-5 text-sm font-medium"
+                className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm font-medium"
                 aria-label="Footer"
             >
                 <Link
@@ -32,6 +32,18 @@ def:pub SiteFooter() -> JsxElement {
                     className="rounded-md text-blue-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
                 >
                     Create account
+                </Link>
+                <Link
+                    to="/privacy"
+                    className="rounded-md text-gray-900 underline-offset-4 hover:text-gray-1000 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                >
+                    Privacy
+                </Link>
+                <Link
+                    to="/terms"
+                    className="rounded-md text-gray-900 underline-offset-4 hover:text-gray-1000 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                >
+                    Terms
                 </Link>
             </nav>
         </div>

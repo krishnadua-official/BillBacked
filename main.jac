@@ -17,6 +17,7 @@ cl {
     import from .components.BillAuditPage { BillAuditPage }
     import from .components.DashboardLayout { DashboardLayout }
     import from .components.LandingPage { LandingPage }
+    import from .components.LegalPages { PrivacyPage, TermsPage }
     import from .components.LoginPage { LoginPage }
     import from .components.SettingsPage { SettingsPage }
     import from .components.SignupPage { SignupPage }
@@ -38,6 +39,8 @@ cl {
                 </Route>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
             </Routes>
         </Router>;
     }

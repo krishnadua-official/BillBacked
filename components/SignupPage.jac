@@ -1,9 +1,8 @@
 """BillBacked sign-up screen."""
 
 import from "@jac/runtime" { Link, Navigate, jacIsLoggedIn, jacLogin, jacSignup, useNavigate }
-import from "@hugeicons/react" { HugeiconsIcon }
-import from "@hugeicons/core-free-icons" { Loading03Icon }
 import from ".AppHeader" { PublicHeader }
+import from ".SignupConsentStep" { SignupConsentStep }
 import from ".ui.button" { Button }
 import from ".ui.field" { Field, FieldLabel }
 import from ".ui.input" { Input }
@@ -12,14 +11,12 @@ def:pub SignupPage() -> JsxElement {
     has email: str = "",
         password: str = "",
         error: str = "",
-        busy: bool = False;
+        busy: bool = False,
+        reviewing_consent: bool = False;
 
     nav = useNavigate();
 
-    async def submit -> None {
-        signup_result: dict | None = None;
-        login_ok: bool = False;
-
+    def review_consent -> None {
         error = "";
         if not email or not password {
             error = "Enter your email and choose a password.";
@@ -27,6 +24,21 @@ def:pub SignupPage() -> JsxElement {
         }
         if len(password) < 8 {
             error = "Use at least 8 characters for your password.";
+            return;
+        }
+        reviewing_consent = True;
+    }
+
+    async def create_account(
+        accepted_terms: bool,
+        acknowledged_privacy: bool
+    ) -> None {
+        signup_result: dict | None = None;
+        login_ok: bool = False;
+
+        error = "";
+        if not accepted_terms or not acknowledged_privacy {
+            error = "Accept the Terms of Service and acknowledge the Privacy Policy to continue.";
             return;
         }
 
@@ -55,15 +67,35 @@ def:pub SignupPage() -> JsxElement {
 
     def handle_submit(e: FormEvent) {
         e.preventDefault();
-        submit();
+        review_consent();
     }
 
     def handle_email(e: ChangeEvent) { email = e.target.value; }
 
     def handle_password(e: ChangeEvent) { password = e.target.value; }
 
+    def handle_back -> None {
+        reviewing_consent = False;
+        error = "";
+    }
+
     if jacIsLoggedIn() {
         return <Navigate to="/dashboard" replace={True} />;
+    }
+
+    if reviewing_consent {
+        return <div className="min-h-svh bg-background text-gray-1000">
+            <PublicHeader action_label="Home" action_href="/" />
+            <main className="mx-auto flex min-h-[calc(100svh-3rem)] w-full max-w-7xl items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+                <SignupConsentStep
+                    email={email}
+                    busy={busy}
+                    error={error}
+                    on_back={handle_back}
+                    on_create={create_account}
+                />
+            </main>
+        </div>;
     }
 
     return <div className="min-h-svh bg-background text-gray-1000">
@@ -127,15 +159,7 @@ def:pub SignupPage() -> JsxElement {
                         className="w-full"
                         disabled={busy}
                     >
-                        {if busy {
-                            <HugeiconsIcon
-                                key="signup-spinner"
-                                icon={Loading03Icon}
-                                strokeWidth={2}
-                                className="size-4 animate-spin"
-                            />
-                        }}
-                        {"Creating account…" if busy else "Create account"}
+                        Continue
                     </Button>
                 </form>
 

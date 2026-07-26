@@ -24,9 +24,9 @@ import from services.discrepancy {
     LineDiscrepancy, BillAudit,
     analyze_bill, audit_bill
 }
-import from services.strategist {
-    PrioritizedDiscrepancy, DisputeStrategy,
-    build_strategy, choose_dispute_angle
+import from services.patient {
+    Patient, PatientView, CoverageType,
+    my_patient, SavePatientProfile
 }
 
 cl {

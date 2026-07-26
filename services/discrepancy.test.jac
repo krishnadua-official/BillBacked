@@ -102,3 +102,39 @@ test "line item with no billed amount is flagged instead of silently counted as 
     assert "No billed amount" in disc.flag_reason;
     assert audit.total_billed == 0.0;
 }
+
+test "grossly mismatched description is flagged as a possible code mismatch" {
+    fair_price = get_price("99213", state="CA", locality="18").selected_payment as float;
+    items: list[LineItem] = [
+        LineItem(code="99213", description="MRI brain scan", billed_amount=fair_price),
+    ];
+    audit = analyze_bill(items, state="CA", locality="18");
+
+    disc = audit.discrepancies[0];
+    assert disc.code_mismatch;
+    assert disc.flagged;
+    assert "possible mismatched code" in disc.flag_reason;
+}
+
+test "plausible description is not flagged as a code mismatch" {
+    fair_price = get_price("99213", state="CA", locality="18").selected_payment as float;
+    items: list[LineItem] = [
+        LineItem(code="99213", description="Office visit, established patient", billed_amount=fair_price),
+    ];
+    audit = analyze_bill(items, state="CA", locality="18");
+
+    disc = audit.discrepancies[0];
+    assert not disc.code_mismatch;
+    assert not disc.flagged;
+}
+
+test "empty description is not flagged as a code mismatch (nothing to compare)" {
+    fair_price = get_price("99213", state="CA", locality="18").selected_payment as float;
+    items: list[LineItem] = [
+        LineItem(code="99213", description="", billed_amount=fair_price),
+    ];
+    audit = analyze_bill(items, state="CA", locality="18");
+
+    disc = audit.discrepancies[0];
+    assert not disc.code_mismatch;
+}

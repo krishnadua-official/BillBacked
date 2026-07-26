@@ -9,6 +9,9 @@ Laboratory Fee Schedule (get_lab_price) -- and flags:
     OVERCHARGE_THRESHOLD
   - duplicate billing: the same code + service date appears more than once
     in the bill
+  - mismatched codes: the billed description shares no words with the
+    CMS description for the code it was billed under (a gross word-overlap
+    check, not semantic understanding -- see _plausibly_matches)
   - unresolved codes: HCPCS/CPT not found in either fee schedule, or
     missing entirely on the line item as extracted
 
@@ -41,6 +44,7 @@ obj LineDiscrepancy {
     has overcharge_amount: float | None = None;
     has overcharge_pct: float | None = None;
     has is_duplicate: bool = False;
+    has code_mismatch: bool = False;
     has flagged: bool = False;
     has flag_reason: str = "";
 }
@@ -58,6 +62,7 @@ obj BillAudit {
 obj BenchmarkLookup {
     has amount: float | None = None;
     has source: str = "";
+    has cms_description: str = "";
     has error: str | None = None;
 }
 
@@ -86,12 +91,20 @@ def _benchmark_for(
         pos=pos,
     );
     if price.found and price.error is None and price.selected_payment is not None {
-        return BenchmarkLookup(amount=price.selected_payment, source=f"MPFS ({price.selected_site})");
+        return BenchmarkLookup(
+            amount=price.selected_payment,
+            source=f"MPFS ({price.selected_site})",
+            cms_description=price.description,
+        );
     }
 
     lab = get_lab_price(code);
     if lab.found and lab.error is None and lab.rate is not None {
-        return BenchmarkLookup(amount=lab.rate, source="CLFS");
+        return BenchmarkLookup(
+            amount=lab.rate,
+            source="CLFS",
+            cms_description=f"{lab.short_description} {lab.long_description}",
+        );
     }
 
     if price.found and price.error is not None {
@@ -101,6 +114,29 @@ def _benchmark_for(
         return BenchmarkLookup(error=lab.error);
     }
     return BenchmarkLookup(error=f"HCPCS/CPT code '{code}' not found in MPFS or CLFS.");
+}
+
+
+"""Cheap sanity check for whether a billed description plausibly matches
+the CMS description for the code it was billed under -- NOT semantic
+understanding, just whether they share any real word. Catches gross
+mismatches (a code for a lab panel billed as "MRI brain"); misses subtle
+ones (synonyms, abbreviations CMS and the provider both use differently).
+That's intentional -- this is a fast, free first-pass filter, not a
+replacement for a real judgment call.
+"""
+def _plausibly_matches(billed_description: str, cms_description: str) -> bool {
+    words: list[str] = [w for w in billed_description.lower().split() if len(w) > 2];
+    if len(words) == 0 {
+        return True;
+    }
+    cms_lower: str = cms_description.lower();
+    for w in words {
+        if w in cms_lower {
+            return True;
+        }
+    }
+    return False;
 }
 
 
@@ -170,6 +206,11 @@ def:pub analyze_bill(
                 pct: float = disc.overcharge_pct as float;
                 reasons.append(f"Billed ${billed:,.2f} vs Medicare-approved ${benchmark:,.2f} ({pct:.0f}% over benchmark)");
             }
+
+            if item.description.strip() != "" and not _plausibly_matches(item.description, lookup.cms_description) {
+                disc.code_mismatch = True;
+                reasons.append(f"Billed as '{item.description}' but code {code} is officially described as '{lookup.cms_description}' -- possible mismatched code.");
+            }
         } elif lookup.error is not None {
             reasons.append(lookup.error);
         } else {
@@ -206,6 +247,7 @@ sem LineDiscrepancy.benchmark_source = "Which fee schedule the benchmark came fr
 sem LineDiscrepancy.overcharge_amount = "billed_amount minus benchmark_amount, in dollars. Positive means overcharged.";
 sem LineDiscrepancy.overcharge_pct = "overcharge_amount as a percentage of benchmark_amount.";
 sem LineDiscrepancy.is_duplicate = "True if this same code/service date appears more than once on the bill.";
+sem LineDiscrepancy.code_mismatch = "True if the billed description shares no words with the CMS description for this code -- a gross mismatch check (e.g. a lab-panel code billed as an MRI), not a nuanced one. Only set when a benchmark was resolved, since there's no CMS description to compare against otherwise.";
 sem LineDiscrepancy.flagged = "True if this line item has ANY issue worth the patient disputing -- overcharge, duplicate, mismatched/implausible code, missing code, missing amount, or an unresolved benchmark.";
 sem LineDiscrepancy.flag_reason = "Plain-English explanation of why this line is flagged, citing the dollar amounts or codes involved. Empty string if not flagged.";
 

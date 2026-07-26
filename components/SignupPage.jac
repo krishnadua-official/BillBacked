@@ -6,6 +6,18 @@ import from ".SignupConsentStep" { SignupConsentStep }
 import from ".ui.button" { Button }
 import from ".ui.field" { Field, FieldLabel }
 import from ".ui.input" { Input }
+sv import from ..services.patient { CoverageType, SavePatientProfile }
+
+
+def _coverage_type_from_str(value: str) -> CoverageType {
+    if value == "PRIVATE_INSURANCE" {
+        return CoverageType.PRIVATE_INSURANCE;
+    }
+    if value == "UNINSURED" {
+        return CoverageType.UNINSURED;
+    }
+    return CoverageType.MEDICARE;
+}
 
 def:pub SignupPage() -> JsxElement {
     has email: str = "",
@@ -31,7 +43,9 @@ def:pub SignupPage() -> JsxElement {
 
     async def create_account(
         accepted_terms: bool,
-        acknowledged_privacy: bool
+        acknowledged_privacy: bool,
+        state: str,
+        coverage_type: str
     ) -> None {
         signup_result: dict | None = None;
         login_ok: bool = False;
@@ -61,6 +75,19 @@ def:pub SignupPage() -> JsxElement {
             busy = False;
             return;
         }
+
+        try {
+            await SavePatientProfile(
+                name="",
+                state=state,
+                coverage_type=_coverage_type_from_str(coverage_type),
+            );
+        } except Exception {
+            # Best-effort: the account exists and is logged in either way --
+            # a profile save failure shouldn't strand the user on this page.
+            # They can fill it in again from settings.
+        }
+
         busy = False;
         nav("/dashboard");
     }

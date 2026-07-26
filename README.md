@@ -20,9 +20,9 @@ email or phone.
 ## Run locally
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 set -a
-source .env
+source .env.local
 set +a
 jac install
 jac start --dev main.jac
@@ -30,8 +30,8 @@ jac start --dev main.jac
 
 Open <http://localhost:8000>. Client files hot-reload while the server is
 running. The app works without the ElevenLabs variables; they are only needed
-when the final provider-call integration is enabled. Source `.env` again when
-starting from a new terminal session.
+when the final provider-call integration is enabled. Source `.env.local` again
+when starting from a new terminal session.
 
 ## Routes
 
@@ -93,10 +93,16 @@ endpoints yet. Jac also supplies the authentication runtime used by `jacLogin`,
    settings, allow overrides for the system prompt and first message; the
    server supplies both for every fictional call.
 4. Create a restricted ElevenLabs API key that can use Conversational AI.
-5. Put the API key, agent ID, and imported ElevenLabs phone-number ID in a local
-   `.env` based on `.env.example`, then restart `jac start`. The backend
+5. Put the API key, agent ID, and imported ElevenLabs phone-number ID in the
+   ignored `.env.local`, then restart `jac start`. The backend
    boundary remains available for the approved final stage, but no standalone
    test-call route is exposed in the product UI.
+
+The `TWILIO_*` values in `.env.local` document the native-integration setup but
+are not read by the BillBacked server. Twilio's temporary Try Out Voice number
+cannot be imported into ElevenLabs because it is not an API-manageable number;
+an active Twilio voice number is required to obtain
+`ELEVENLABS_PHONE_NUMBER_ID`.
 
 Twilio and ElevenLabs can both charge for usage. Trial restrictions and
 included quotas change over time, so confirm them in both dashboards before

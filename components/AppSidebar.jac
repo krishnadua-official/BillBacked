@@ -70,15 +70,13 @@ def:pub AppSidebar(
     );
 
     return <Sidebar collapsible="offcanvas">
-        <SidebarHeader>
-            <div className="px-1 pt-2">
-                <Link
-                    to="/dashboard"
-                    className="flex h-10 items-center gap-2 rounded-lg px-2 text-base font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
-                >
-                    BillBacked<span className="text-blue-700">.</span>
-                </Link>
-            </div>
+        <SidebarHeader className="flex h-12 shrink-0 items-center border-b border-sidebar-border/70 px-3 py-0">
+            <Link
+                to="/dashboard"
+                className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+            >
+                BillBacked<span className="text-blue-700">.</span>
+            </Link>
         </SidebarHeader>
 
         <SidebarContent>

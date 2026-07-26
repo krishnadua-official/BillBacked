@@ -63,22 +63,22 @@ def:pub InvoiceDashboardRow(invoice_id: str) -> JsxElement {
         onKeyDown={handle_key}
         className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700"
     >
-        <TableCell className="px-6 py-4">
+        <TableCell className="pl-3 pr-4">
             <span className="font-medium text-gray-1000">{provider}</span>
         </TableCell>
-        <TableCell className="hidden max-w-56 truncate px-4 py-4 text-gray-900 md:table-cell">
+        <TableCell className="hidden max-w-56 truncate px-4 text-gray-900 md:table-cell">
             {invoice_file_name(invoice_id) as str}
         </TableCell>
-        <TableCell className="hidden px-4 py-4 text-gray-900 lg:table-cell">
+        <TableCell className="hidden px-4 text-gray-900 lg:table-cell">
             {invoice_completed_on(invoice_id) as str}
         </TableCell>
-        <TableCell className="px-4 py-4 text-right tabular-nums text-gray-900">
+        <TableCell className="px-4 text-right tabular-nums text-gray-900">
             {invoice_final_cost(invoice_id) as str}
         </TableCell>
-        <TableCell className="hidden px-4 py-4 text-right tabular-nums font-medium text-gray-1000 sm:table-cell">
+        <TableCell className="hidden px-4 text-right tabular-nums font-medium text-gray-1000 sm:table-cell">
             {invoice_savings(invoice_id) as str}
         </TableCell>
-        <TableCell className="px-6 py-4 text-right">
+        <TableCell className="pl-4 pr-3 text-right">
             <Badge
                 variant="outline"
                 className="h-6 border-success-border bg-success-background px-2.5 text-success"
@@ -120,40 +120,36 @@ def:pub DashboardHomePage() -> JsxElement {
         </section>
 
         <section aria-label="Latest invoices">
-            <Card className="gap-0 overflow-hidden py-0">
-                <CardContent className="p-0">
-                    <Table aria-label="Latest negotiated invoices">
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                                <TableHead className="px-6">Provider</TableHead>
-                                <TableHead className="hidden px-4 md:table-cell">
-                                    Invoice
-                                </TableHead>
-                                <TableHead className="hidden px-4 lg:table-cell">
-                                    Completed
-                                </TableHead>
-                                <TableHead className="px-4 text-right">
-                                    Final bill
-                                </TableHead>
-                                <TableHead className="hidden px-4 text-right sm:table-cell">
-                                    Saved
-                                </TableHead>
-                                <TableHead className="px-6 text-right">
-                                    Result
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {for invoice_id in history_ids {
-                                <InvoiceDashboardRow
-                                    key={invoice_id}
-                                    invoice_id={invoice_id}
-                                />
-                            }}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <Table aria-label="Latest negotiated invoices">
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="pl-3 pr-4">Provider</TableHead>
+                        <TableHead className="hidden px-4 md:table-cell">
+                            Invoice
+                        </TableHead>
+                        <TableHead className="hidden px-4 lg:table-cell">
+                            Completed
+                        </TableHead>
+                        <TableHead className="px-4 text-right">
+                            Final bill
+                        </TableHead>
+                        <TableHead className="hidden px-4 text-right sm:table-cell">
+                            Saved
+                        </TableHead>
+                        <TableHead className="pl-4 pr-3 text-right">
+                            Result
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {for invoice_id in history_ids {
+                        <InvoiceDashboardRow
+                            key={invoice_id}
+                            invoice_id={invoice_id}
+                        />
+                    }}
+                </TableBody>
+            </Table>
         </section>
     </main>;
 }

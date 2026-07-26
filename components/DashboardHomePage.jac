@@ -94,19 +94,8 @@ def:pub DashboardHomePage() -> JsxElement {
     history_ids: list[str] = invoice_ids() as list[str];
 
     return <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 py-10 text-gray-1000 sm:px-8 sm:py-12">
-        <section aria-labelledby="dashboard-overview-title">
-            <h2
-                id="dashboard-overview-title"
-                className="text-3xl font-medium tracking-[-0.05em] sm:text-4xl"
-            >
-                Negotiation overview
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-900">
-                Track completed invoices, the savings secured, and the patterns
-                the agent can reuse in future negotiations.
-            </p>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="Negotiation metrics">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <DashboardMetric
                     label="Invoices processed"
                     value={dashboard_invoice_count() as str}

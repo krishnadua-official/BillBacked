@@ -7,6 +7,10 @@ import from "@hugeicons/core-free-icons" {
 }
 import from ".ui.button" { Button }
 import from "..lib.utils" { cn }
+import from ".InvoiceData" {
+    invoice_completed_date, invoice_exists, invoice_file_name,
+    invoice_final_cost, invoice_provider, invoice_savings
+}
 
 
 def:pub AuditStep(
@@ -80,7 +84,9 @@ def:pub AuditProcessPage() -> JsxElement {
     route_state = location["state"];
     invoice_id_value = params["invoice_id"];
     invoice_id = str(invoice_id_value) if invoice_id_value else "";
-    is_history = True if invoice_id else False;
+    is_history: bool = (
+        (invoice_exists(invoice_id) as bool) if invoice_id else False
+    );
     file_name = "Uploaded Medicare bill";
     provider_name = "Your provider";
     final_cost = "";
@@ -90,30 +96,12 @@ def:pub AuditProcessPage() -> JsxElement {
         file_name = str(route_state["file_name"]);
     }
 
-    if invoice_id == "st-joseph" {
-        file_name = "St. Joseph medical bill.pdf";
-        provider_name = "St. Joseph Medical Center";
-        final_cost = "$2,160";
-        savings = "$1,240";
-        completed_date = "Negotiated June 18, 2026";
-    } elif invoice_id == "mercy-general" {
-        file_name = "Mercy General statement.pdf";
-        provider_name = "Mercy General Hospital";
-        final_cost = "$1,480";
-        savings = "$860";
-        completed_date = "Negotiated May 29, 2026";
-    } elif invoice_id == "northside-imaging" {
-        file_name = "Northside imaging invoice.pdf";
-        provider_name = "Northside Imaging";
-        final_cost = "$625";
-        savings = "$475";
-        completed_date = "Negotiated April 11, 2026";
-    } elif invoice_id == "lakeshore-cardio" {
-        file_name = "Lakeshore cardiology bill.pdf";
-        provider_name = "Lakeshore Cardiology";
-        final_cost = "$1,090";
-        savings = "$690";
-        completed_date = "Negotiated March 7, 2026";
+    if is_history {
+        file_name = invoice_file_name(invoice_id) as str;
+        provider_name = invoice_provider(invoice_id) as str;
+        final_cost = invoice_final_cost(invoice_id) as str;
+        savings = invoice_savings(invoice_id) as str;
+        completed_date = invoice_completed_date(invoice_id) as str;
     }
 
     visible_step = 5 if is_history else current_step;

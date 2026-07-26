@@ -1,22 +1,7 @@
-"""The account menu -- always reachable, at every width.
+"""Shared account menu for the persistent header and sidebar footer.
 
-This lives in the page HEADER rather than the sidebar footer, and that is the
-whole point. The sidebar is `collapsible="offcanvas"`, so on a narrow viewport
-it is not merely thin -- it is gone, and anything parked inside it (including
-sign out) goes with it. The header is on screen at every width, so the one
-control a signed-in user must always be able to find lives here.
-
-Two details that look cosmetic and are not:
-
-  * The trigger is a raw `<button>`, not `<Button>`. A jac-shadcn `<Button>`
-    handed to a Radix `*Trigger asChild` swallows the click and the menu never
-    opens.
-  * `side="bottom" align="end"`. The header sits at the TOP of the page, so the
-    menu has room below it. Opening upward from here would flip the content off
-    the top of the viewport and make it unclickable.
-
-Stateless, like the other sections: identity comes down as props, the sign-out
-event goes back up through `onLogout`.
+The menu behavior and actions live here once. The `variant` prop changes only
+the trigger presentation and menu placement for its two layout contexts.
 """
 
 import from ".ui.avatar" { Avatar, AvatarFallback }
@@ -38,44 +23,80 @@ def:pub AccountMenu(
     name: str,
     email: str,
     onLogout: Callable[[], None],
-    onSettings: Callable[[], None] | None = None
+    onSettings: Callable[[], None] | None = None,
+    variant: str = "header",
+    description: str = "Private Medicare workspace"
 ) -> JsxElement {
     # Radix fires `onSelect` for keyboard AND pointer activation; `onClick`
     # only covers the mouse.
-    def handle_logout(_: any) {
+    def handle_logout(_event: Event) {
         onLogout();
     }
 
-    def handle_settings(_: any) {
+    def handle_settings(_event: Event) {
         if onSettings {
             onSettings();
         }
     }
 
+    is_sidebar = variant == "sidebar";
+    trigger_label = "Open account menu" if is_sidebar else "Account";
+    trigger_class = (
+        "flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-xl p-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+        if is_sidebar
+        else "flex shrink-0 items-center gap-2 rounded-full p-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    );
+    menu_side = "top" if is_sidebar else "bottom";
+    menu_align = "start" if is_sidebar else "end";
+    menu_width = "w-60" if is_sidebar else "w-56";
+    secondary_text = email if email else (description if is_sidebar else "");
+
     return <DropdownMenu>
         <DropdownMenuTrigger asChild={True}>
             <button
                 type="button"
-                aria-label="Account"
-                className="flex shrink-0 items-center gap-2 rounded-full pt-1 pb-1 pl-1 pr-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={trigger_label}
+                className={trigger_class}
             >
                 <Avatar className="size-8 rounded-full">
                     <AvatarFallback className="rounded-full">
                         {_initials(name)}
                     </AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-32 truncate text-sm font-medium sm:block">
-                    {name}
-                </span>
+                {if is_sidebar {
+                    <span
+                        key="sidebar-account-copy"
+                        className="flex min-w-0 flex-col"
+                    >
+                        <span className="truncate text-sm font-medium">{name}</span>
+                        <span className="truncate text-xs text-gray-700">
+                            {description}
+                        </span>
+                    </span>
+                } else {
+                    <span
+                        key="header-account-copy"
+                        className="hidden max-w-32 truncate text-sm font-medium sm:block"
+                    >
+                        {name}
+                    </span>
+                }}
             </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="bottom" align="end" className="w-56">
+        <DropdownMenuContent
+            side={menu_side}
+            align={menu_align}
+            className={menu_width}
+        >
             <DropdownMenuLabel>
                 <div className="flex flex-col">
                     <span className="truncate text-sm font-medium">{name}</span>
-                    {if email {
-                        <span className="truncate text-xs font-normal text-muted-foreground">
-                            {email}
+                    {if secondary_text {
+                        <span
+                            key="secondary-account-text"
+                            className="truncate text-xs font-normal text-muted-foreground"
+                        >
+                            {secondary_text}
                         </span>
                     }}
                 </div>

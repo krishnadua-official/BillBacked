@@ -11,7 +11,7 @@ import from ".InvoiceData" {
 }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    AddInvoiceIcon, Invoice01Icon
+    AddInvoiceIcon, CallOutgoing01Icon, Invoice01Icon
 }
 
 
@@ -68,6 +68,12 @@ def:pub AppSidebar(
         if new_audit_active
         else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     );
+    call_test_active = active_path == "/dashboard/call-test";
+    call_test_state = (
+        "bg-sidebar-accent text-sidebar-accent-foreground"
+        if call_test_active
+        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    );
 
     return <Sidebar collapsible="offcanvas">
         <SidebarHeader className="flex h-12 shrink-0 items-center border-b border-sidebar-border/70 px-3 py-0">
@@ -97,6 +103,20 @@ def:pub AppSidebar(
                                             className="size-4 shrink-0"
                                         />
                                         <span>New audit</span>
+                                    </Link>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <Link
+                                        to="/dashboard/call-test"
+                                        aria-current={"page" if call_test_active else None}
+                                        className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + call_test_state}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={CallOutgoing01Icon}
+                                            strokeWidth={2}
+                                            className="size-4 shrink-0"
+                                        />
+                                        <span>Test negotiation call</span>
                                     </Link>
                                 </SidebarMenuItem>
                             </SidebarMenu>

@@ -9,6 +9,10 @@ import from services.pricing {
     get_price, list_localities, get_lab_price
 }
 import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bill }
+import from services.negotiation {
+    NegotiationCase, NegotiationCallResult,
+    get_demo_negotiation_case, start_demo_negotiation_call
+}
 
 cl {
     import ".styles.global.css";
@@ -19,6 +23,7 @@ cl {
     import from .components.LandingPage { LandingPage }
     import from .components.LegalPages { PrivacyPage, TermsPage }
     import from .components.LoginPage { LoginPage }
+    import from .components.NegotiationCallPage { NegotiationCallPage }
     import from .components.SettingsPage { SettingsPage }
     import from .components.SignupPage { SignupPage }
 
@@ -35,6 +40,10 @@ cl {
                             element={<AuditProcessPage />}
                         />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route
+                            path="call-test"
+                            element={<NegotiationCallPage />}
+                        />
                     </Route>
                 </Route>
                 <Route path="/login" element={<LoginPage />} />

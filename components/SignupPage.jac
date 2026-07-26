@@ -68,7 +68,7 @@ def:pub SignupPage() -> JsxElement {
 
     return <div className="min-h-svh bg-background text-gray-1000">
         <PublicHeader action_label="Home" action_href="/" />
-        <main className="mx-auto flex min-h-[calc(100svh-5rem)] w-full max-w-7xl items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+        <main className="mx-auto flex min-h-[calc(100svh-3rem)] w-full max-w-7xl items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
             <section
                 className="w-full max-w-md"
                 aria-labelledby="signup-title"
@@ -122,7 +122,9 @@ def:pub SignupPage() -> JsxElement {
                     }}
                     <Button
                         type="submit"
-                        className="h-11 w-full rounded-full"
+                        variant="primary"
+                        size="lg"
+                        className="w-full"
                         disabled={busy}
                     >
                         {if busy {

@@ -11,7 +11,7 @@ api_key = "${GOOGLE_API_KEY:-}"
 [jac-shadcn]
 style = "nova"
 baseColor = "neutral"
-theme = "neutral"
+theme = "blue"
 font = "geist"
 radius = "small"
 menuAccent = "subtle"

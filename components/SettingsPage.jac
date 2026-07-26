@@ -12,8 +12,8 @@ def:pub SettingsPage() -> JsxElement {
         nav("/login");
     }
 
-    return <div className="flex flex-1 justify-center px-4 py-10 sm:px-8 sm:py-14">
-        <div className="w-full max-w-3xl">
+    return <div className="grid flex-1 grid-cols-[2.25rem_minmax(0,1fr)] gap-3 px-4 py-10 sm:px-6 sm:py-14">
+        <div className="col-start-2 w-full max-w-3xl">
             <div>
                 <h2 className="text-3xl font-medium tracking-[-0.05em] text-gray-1000">
                     Account and privacy
@@ -69,8 +69,8 @@ def:pub SettingsPage() -> JsxElement {
                     </p>
                     <Button
                         type="button"
-                        variant="outline"
-                        className="mt-5 h-10 rounded-xl px-4"
+                        variant="secondary"
+                        className="mt-5"
                         onClick={sign_out}
                     >
                         Sign out

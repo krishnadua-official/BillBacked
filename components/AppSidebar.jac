@@ -11,7 +11,7 @@ import from ".InvoiceData" {
 }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    AddInvoiceIcon, Invoice01Icon, Settings01Icon
+    AddInvoiceIcon, Invoice01Icon
 }
 
 
@@ -68,22 +68,15 @@ def:pub AppSidebar(
         if new_audit_active
         else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     );
-    settings_state = (
-        "bg-sidebar-accent text-sidebar-accent-foreground"
-        if active_path == "/dashboard/settings"
-        else "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-    );
 
     return <Sidebar collapsible="offcanvas">
-        <SidebarHeader>
-            <div className="px-1 pt-2">
-                <Link
-                    to="/dashboard"
-                    className="flex h-10 items-center gap-2 rounded-lg px-2 text-base font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
-                >
-                    BillBacked<span className="text-blue-700">.</span>
-                </Link>
-            </div>
+        <SidebarHeader className="flex h-12 shrink-0 items-center border-b border-sidebar-border/70 px-3 py-0">
+            <Link
+                to="/dashboard"
+                className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm font-semibold tracking-[-0.03em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+            >
+                BillBacked<span className="text-blue-700">.</span>
+            </Link>
         </SidebarHeader>
 
         <SidebarContent>
@@ -98,18 +91,12 @@ def:pub AppSidebar(
                                         aria-current={"page" if new_audit_active else None}
                                         className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + new_audit_state}
                                     >
-                                        <HugeiconsIcon icon={AddInvoiceIcon} strokeWidth={2} />
+                                        <HugeiconsIcon
+                                            icon={AddInvoiceIcon}
+                                            strokeWidth={2}
+                                            className="size-4 shrink-0"
+                                        />
                                         <span>New audit</span>
-                                    </Link>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <Link
-                                        to="/dashboard/settings"
-                                        aria-current={"page" if active_path == "/dashboard/settings" else None}
-                                        className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + settings_state}
-                                    >
-                                        <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-                                        <span>Settings</span>
                                     </Link>
                                 </SidebarMenuItem>
                             </SidebarMenu>
@@ -141,7 +128,7 @@ def:pub AppSidebar(
             </div>
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="border-t border-sidebar-border/70">
             <div className="p-1">
                 <AccountMenu
                     name={name}

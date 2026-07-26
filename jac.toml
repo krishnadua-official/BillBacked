@@ -4,11 +4,9 @@ entry-point = "main.jac"
 kind = "web-app"
 jac-version = "==0.34.7"
 
-[byllm]
-[byllm.model]
-default_model = "${LLM_MODEL:-gpt-4o-mini}"
-api_key = "${OPENAI_API_KEY:-}"
-
+[plugins.byllm.model]
+default_model = "${LLM_MODEL:-gemini/gemini-3.5-flash-lite}"
+api_key = "${GOOGLE_API_KEY:-}"
 
 [jac-shadcn]
 style = "nova"
@@ -20,6 +18,10 @@ menuAccent = "subtle"
 menuColor = "default"
 [dependencies]
 pandas = ">=2.0.0"
+pymupdf = "~=1.28"
+pdfplumber = "~=0.11"
+pytesseract = "~=0.3"
+Pillow = "~=12.3"
 
 [dependencies.npm]
 "@fontsource-variable/geist" = "*"
@@ -53,8 +55,6 @@ sonner = "*"
 vaul = "*"
 zod = "^4.3.6"
 
-
-[client]
 [client.vite]
 plugins = ["tailwindcss()"]
 lib_imports = ["import tailwindcss from '@tailwindcss/vite'"]
@@ -70,18 +70,15 @@ og_title = "BillBacked"
 og_description = "Understand what your Medicare bill should cost."
 og_site_name = "BillBacked"
 
-
-[scale]
 [scale.microservices]
 enabled = false
 
 [scale.jwt]
 secret = "${JAC_JWT_SECRET:-billbacked-dev-secret-change-before-deploy}"
 
-
 [serve]
 base_route_app = "app"
 
 [jacpack]
-name = 'BillBacked'
-description = 'Jac IDE snapshot for BillBacked'
+name = "BillBacked"
+description = "Jac IDE snapshot for BillBacked"

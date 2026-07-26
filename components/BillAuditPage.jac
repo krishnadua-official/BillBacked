@@ -15,7 +15,7 @@ def:pub BillAuditPage() -> JsxElement {
             selected_file: any = e.target.files[0];
             nav(
                 "/dashboard/audit",
-                {"state": {"file_name": selected_file.name}}
+                {"state": {"file_name": selected_file.name, "file": selected_file}}
             );
         }
     }

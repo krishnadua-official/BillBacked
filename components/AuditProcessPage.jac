@@ -11,6 +11,7 @@ import from ".InvoiceData" {
     invoice_completed_date, invoice_exists, invoice_file_name,
     invoice_final_cost, invoice_provider, invoice_savings
 }
+sv import from ..services.extractor { StructuredDocument, upload_bill }
 
 
 def:pub AuditStep(
@@ -77,6 +78,8 @@ def:pub AuditStep(
 
 def:pub AuditProcessPage() -> JsxElement {
     has current_step: int = 1;
+    has extracted: StructuredDocument | None = None;
+    has error_message: str = "";
 
     location = useLocation();
     nav = useNavigate();
@@ -95,6 +98,7 @@ def:pub AuditProcessPage() -> JsxElement {
     if route_state and route_state["file_name"] {
         file_name = str(route_state["file_name"]);
     }
+    uploaded_file: any = route_state["file"] if route_state and route_state["file"] else None;
 
     if is_history {
         file_name = invoice_file_name(invoice_id) as str;
@@ -106,11 +110,25 @@ def:pub AuditProcessPage() -> JsxElement {
 
     visible_step = 5 if is_history else current_step;
 
-    can with entry {
-        if not is_history {
-            setTimeout(lambda -> None { current_step = 2; }, 900);
-            setTimeout(lambda -> None { current_step = 3; }, 1900);
-            setTimeout(lambda -> None { current_step = 4; }, 3100);
+    async can with entry {
+        if not is_history and uploaded_file {
+            current_step = 2;
+            try {
+                buf = await uploaded_file.arrayBuffer();
+                byte_arr = new(Uint8Array, buf);  # jac:ignore[E1053]
+                binary: str = "";
+                for b in byte_arr {  # jac:ignore[E1021]
+                    binary = binary + String.fromCharCode(b);  # jac:ignore[E1032,E1055]
+                }
+                file_b64: str = btoa(binary);  # jac:ignore[E1001]
+                mime: str = str(uploaded_file.type) if uploaded_file.type else "";
+                filename: str = str(uploaded_file.name);
+                doc = await upload_bill(file_b64, mime, filename);
+                extracted = doc;
+            } except Exception as e {
+                error_message = str(e);
+            }
+            current_step = 4;
         }
     }
 
@@ -127,9 +145,9 @@ def:pub AuditProcessPage() -> JsxElement {
     if not is_history and current_step == 2 {
         status_title = "Organizing your charges";
         status_copy = "Classifying each item by service, provider, location, and Medicare context.";
-    } elif not is_history and current_step == 3 {
-        status_title = "Calculating the true cost";
-        status_copy = "Comparing each charge with historical rates for the same Medicare service.";
+    } elif not is_history and current_step == 4 and error_message {
+        status_title = "Something went wrong reading this bill";
+        status_copy = error_message;
     } elif not is_history and current_step == 4 {
         status_title = "Your audit is ready";
         status_copy = "You will approve the true-cost bill before any provider outreach begins.";
@@ -214,6 +232,38 @@ def:pub AuditProcessPage() -> JsxElement {
                         </Button>
                     }}
                 </section>
+
+                {if not is_history and extracted {
+                    <section key="extracted-results" className="border-t border-border pt-8">
+                        <h2 className="text-sm font-medium text-gray-700">What we found</h2>
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Patient</p>
+                                <p className="mt-2 text-sm font-medium text-gray-1000">
+                                    {extracted.patient_name if extracted.patient_name else "Not found"}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Provider</p>
+                                <p className="mt-2 text-sm font-medium text-gray-1000">
+                                    {extracted.provider_name if extracted.provider_name else "Not found"}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Document type</p>
+                                <p className="mt-2 text-sm font-medium text-gray-1000">
+                                    {str(extracted.document_type)}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-blue-100 p-4">
+                                <p className="text-xs text-gray-900">Line items found</p>
+                                <p className="mt-2 text-sm font-medium text-blue-700">
+                                    {len(extracted.line_items)}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                }}
             </div>
 
             <section

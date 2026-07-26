@@ -20,7 +20,7 @@ def:pub FaqSection() -> JsxElement {
             <div className="mt-8 border-b border-border/70">
                 <details className="group border-t border-border/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-medium tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 [&::-webkit-details-marker]:hidden">
-                        <span>What does BillBacked check on my bill?</span>
+                        <span>What does the agent check on my bill?</span>
                         <HugeiconsIcon
                             icon={ArrowDown01Icon}
                             size={16}
@@ -30,13 +30,13 @@ def:pub FaqSection() -> JsxElement {
                         />
                     </summary>
                     <p className="max-w-2xl pb-4 pr-8 text-sm leading-6 text-gray-900">
-                        BillBacked reads each charge, code, provider, and date to flag duplicate items, coding issues, and prices that may not match Medicare benchmarks.
+                        It reads each charge, code, provider, and service date to find duplicate items, coding issues, and prices that may not match Medicare benchmarks.
                     </p>
                 </details>
 
                 <details className="group border-t border-border/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-medium tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 [&::-webkit-details-marker]:hidden">
-                        <span>How is the true cost estimated?</span>
+                        <span>How does the negotiation work?</span>
                         <HugeiconsIcon
                             icon={ArrowDown01Icon}
                             size={16}
@@ -46,13 +46,13 @@ def:pub FaqSection() -> JsxElement {
                         />
                     </summary>
                     <p className="max-w-2xl pb-4 pr-8 text-sm leading-6 text-gray-900">
-                        Each line item is compared with Medicare pricing and available historical charge data to produce a transparent estimate for you to review.
+                        The agent turns the audit into an evidence-backed target, contacts the billing office, responds to counteroffers, and keeps negotiating toward a fair amount.
                     </p>
                 </details>
 
                 <details className="group border-t border-border/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-medium tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 [&::-webkit-details-marker]:hidden">
-                        <span>Will BillBacked contact the provider without me?</span>
+                        <span>Will the agent call the provider?</span>
                         <HugeiconsIcon
                             icon={ArrowDown01Icon}
                             size={16}
@@ -62,13 +62,13 @@ def:pub FaqSection() -> JsxElement {
                         />
                     </summary>
                     <p className="max-w-2xl pb-4 pr-8 text-sm leading-6 text-gray-900">
-                        No. You review and approve the adjusted bill and outreach draft before any email or call is made.
+                        Yes. After you approve the negotiation case, BillBacked can email or call the provider and follow up on your behalf.
                     </p>
                 </details>
 
                 <details className="group border-t border-border/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-medium tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 [&::-webkit-details-marker]:hidden">
-                        <span>Can BillBacked guarantee a lower bill?</span>
+                        <span>Who approves the final amount?</span>
                         <HugeiconsIcon
                             icon={ArrowDown01Icon}
                             size={16}
@@ -78,13 +78,13 @@ def:pub FaqSection() -> JsxElement {
                         />
                     </summary>
                     <p className="max-w-2xl pb-4 pr-8 text-sm leading-6 text-gray-900">
-                        No outcome is guaranteed. BillBacked helps identify likely errors and prepares a stronger negotiation using the evidence in your bill.
+                        You do. The agent brings the provider&apos;s final offer back to your dashboard so you can accept it or keep negotiating.
                     </p>
                 </details>
 
                 <details className="group border-t border-border/70">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-medium tracking-[-0.01em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-700 [&::-webkit-details-marker]:hidden">
-                        <span>Is my Medicare bill private?</span>
+                        <span>Is a lower bill guaranteed?</span>
                         <HugeiconsIcon
                             icon={ArrowDown01Icon}
                             size={16}
@@ -94,7 +94,7 @@ def:pub FaqSection() -> JsxElement {
                         />
                     </summary>
                     <p className="max-w-2xl pb-4 pr-8 text-sm leading-6 text-gray-900">
-                        Your audit is tied to your private account. In this prototype, the selected file remains in the current browser session.
+                        No. Providers make the final decision, but the agent gives each negotiation a documented case, consistent follow-up, and a clear target.
                     </p>
                 </details>
             </div>

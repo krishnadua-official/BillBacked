@@ -14,7 +14,7 @@ def:pub SiteFooter() -> JsxElement {
                     BillBacked<span className="text-blue-700">.</span>
                 </Link>
                 <p className="mt-1 text-sm text-gray-900">
-                    Medicare bill audits, with you in control.
+                    The agent negotiates. You approve the result.
                 </p>
             </div>
             <nav

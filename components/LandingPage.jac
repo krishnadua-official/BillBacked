@@ -51,12 +51,14 @@ def:pub LandingPage() -> JsxElement {
                 />
                 <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-7xl content-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div className="text-white">
-                        <Badge variant="glass">Built for Medicare bills</Badge>
+                        <Badge variant="glass">
+                            Medicare bill negotiation, handled
+                        </Badge>
                         <h1 className="mt-8 max-w-3xl text-balance text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
-                            Understand your bill before you pay it.
+                            Your medical bill, negotiated for you.
                         </h1>
                         <p className="mt-6 max-w-2xl text-balance text-lg leading-8">
-                            BillBacked audits every charge, estimates the fair Medicare cost, and prepares provider outreach for your approval.
+                            Upload your Medicare bill. BillBacked checks every charge, builds a fair-cost case, and negotiates with the provider by email or phone. You approve the final amount.
                         </p>
                     </div>
 
@@ -68,15 +70,15 @@ def:pub LandingPage() -> JsxElement {
                             id="landing-upload-title"
                             className="text-2xl font-medium tracking-[-0.04em]"
                         >
-                            Upload a Medicare bill.
+                            Start your bill negotiation.
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-gray-900">
-                            Create a private account before choosing your PDF or photo.
+                            Create a private account, then add a PDF or clear photo. The agent takes it from there.
                         </p>
                         <div className="mt-8">
                             <BillDropZone
                                 href="/signup"
-                                action_label="Sign up to upload"
+                                action_label="Start negotiating"
                             />
                         </div>
                         <p className="mt-5 text-sm text-gray-900">

@@ -117,7 +117,7 @@ def:pub BillDropZone(
                 key="bill-drop-zone-link"
                 to={href}
                 className={zone_class}
-                aria-label="Create an account to upload a Medicare bill"
+                aria-label="Create an account to start a Medicare bill negotiation"
                 onDragEnter={handle_drag_enter}
                 onDragOver={handle_drag_over}
                 onDragLeave={handle_drag_leave}

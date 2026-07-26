@@ -12,10 +12,10 @@ def:pub AuditStepsSection() -> JsxElement {
                     id="audit-steps-title"
                     className="text-balance text-4xl font-medium tracking-[-0.05em] sm:text-5xl"
                 >
-                    From bill to a fair price.
+                    From bill to negotiated price.
                 </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-balance text-lg leading-8 text-gray-900">
-                    See every audit step before you approve provider outreach.
+                    Follow the agent as it audits the charges, contacts the provider, and negotiates on your behalf.
                 </p>
             </div>
 
@@ -32,7 +32,7 @@ def:pub AuditStepsSection() -> JsxElement {
                             Upload your Medicare bill
                         </h3>
                         <p className="mt-3 text-sm leading-6 text-gray-900">
-                            Add a PDF or clear photo. BillBacked reads every charge, code, provider, and date.
+                            Add a PDF or clear photo. The agent reads every charge, code, provider, and service date.
                         </p>
                     </div>
                 </li>
@@ -45,10 +45,10 @@ def:pub AuditStepsSection() -> JsxElement {
                     </span>
                     <div>
                         <h3 className="text-xl font-medium tracking-[-0.02em]">
-                            Review the true cost
+                            Build the negotiation case
                         </h3>
                         <p className="mt-3 text-sm leading-6 text-gray-900">
-                            Each line item is compared with Medicare pricing to flag errors and estimate a fair amount.
+                            Each line item is checked against Medicare pricing to flag errors and calculate a fair target.
                         </p>
                     </div>
                 </li>
@@ -61,10 +61,10 @@ def:pub AuditStepsSection() -> JsxElement {
                     </span>
                     <div>
                         <h3 className="text-xl font-medium tracking-[-0.02em]">
-                            Approve provider outreach
+                            The agent negotiates. You approve.
                         </h3>
                         <p className="mt-3 text-sm leading-6 text-gray-900">
-                            Review the adjusted bill and draft message before BillBacked contacts the provider.
+                            BillBacked emails or calls the provider, handles the back-and-forth, and brings the final offer to you.
                         </p>
                     </div>
                 </li>

@@ -1,5 +1,5 @@
 [project]
-name = "fullstack-auth"
+name = "billbacked"
 entry-point = "main.jac"
 kind = "web-app"
 jac-version = "==0.34.7"
@@ -13,14 +13,14 @@ api_key = "${OPENAI_API_KEY:-}"
 [jac-shadcn]
 style = "nova"
 baseColor = "neutral"
-theme = "amber"
-font = "inter"
-radius = "default"
+theme = "neutral"
+font = "geist"
+radius = "small"
 menuAccent = "subtle"
 menuColor = "default"
-
 [dependencies]
 [dependencies.npm]
+"@fontsource-variable/geist" = "*"
 "@hugeicons/core-free-icons" = "latest"
 "@hugeicons/react" = "latest"
 "@radix-ui/react-slot" = "*"
@@ -58,15 +58,15 @@ plugins = ["tailwindcss()"]
 lib_imports = ["import tailwindcss from '@tailwindcss/vite'"]
 
 [client.app_meta_data]
-title = "Notebook"
-description = "Sign up, write notes, sign out. Every note lives on your own graph, persisted with zero setup, and nobody else can read it."
-keywords = "notes, auth, fullstack, graph, jac"
-author = "Notebook"
-theme_color = "#dc7702"
+title = "BillBacked"
+description = "Audit Medicare bills, understand the true cost, and prepare a provider negotiation."
+keywords = "Medicare, medical bills, bill audit, healthcare"
+author = "BillBacked"
+theme_color = "#171717"
 og_type = "website"
-og_title = "Notebook"
-og_description = "A full-stack notes app with auth and zero-setup persistence -- no database to configure."
-og_site_name = "Notebook"
+og_title = "BillBacked"
+og_description = "Understand what your Medicare bill should cost."
+og_site_name = "BillBacked"
 
 
 [scale]
@@ -74,7 +74,7 @@ og_site_name = "Notebook"
 enabled = false
 
 [scale.jwt]
-secret = "${JAC_JWT_SECRET:-notebook-dev-secret-change-before-deploy}"
+secret = "${JAC_JWT_SECRET:-billbacked-dev-secret-change-before-deploy}"
 
 
 [serve]

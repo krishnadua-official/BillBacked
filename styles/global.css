@@ -6,37 +6,37 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+    --canvas: #e9e9e9;
     --background: #ffffff;
+    --background-200: #f5f5f5;
     --foreground: #171717;
+    --gray-700: #8a8a8a;
+    --gray-900: #4d4d4d;
+    --gray-1000: #171717;
+    --blue-100: #f0f7ff;
+    --blue-700: #006bff;
     --card: #ffffff;
     --card-foreground: #171717;
     --popover: #ffffff;
     --popover-foreground: #171717;
     --primary: #171717;
     --primary-foreground: #ffffff;
-    --secondary: #f2f2f2;
+    --secondary: #f5f5f5;
     --secondary-foreground: #171717;
-    --muted: #fafafa;
+    --muted: #f5f5f5;
     --muted-foreground: #4d4d4d;
-    --accent: #f2f2f2;
+    --accent: #f5f5f5;
     --accent-foreground: #171717;
     --destructive: oklch(0.58 0.22 27);
-    --border: #eaeaea;
-    --input: #c9c9c9;
+    --border: #dedede;
+    --input: #d9d9d9;
     --ring: #006bff;
-    --inverse-surface-100: #0a0a0a;
-    --inverse-surface-200: #1d1d1b;
-    --inverse-surface-300: #2a2a27;
-    --inverse-text-primary: #f2f2f2;
-    --inverse-text-secondary: #b5b5b5;
-    --inverse-border: #ffffff24;
-    --inverse-track: #3a3a36;
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.375rem;
+    --radius: 0.875rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -98,13 +98,13 @@
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
-    --color-inverse-surface-100: var(--inverse-surface-100);
-    --color-inverse-surface-200: var(--inverse-surface-200);
-    --color-inverse-surface-300: var(--inverse-surface-300);
-    --color-inverse-text-primary: var(--inverse-text-primary);
-    --color-inverse-text-secondary: var(--inverse-text-secondary);
-    --color-inverse-border: var(--inverse-border);
-    --color-inverse-track: var(--inverse-track);
+    --color-canvas: var(--canvas);
+    --color-background-200: var(--background-200);
+    --color-gray-700: var(--gray-700);
+    --color-gray-900: var(--gray-900);
+    --color-gray-1000: var(--gray-1000);
+    --color-blue-100: var(--blue-100);
+    --color-blue-700: var(--blue-700);
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
@@ -137,8 +137,13 @@
     }
     body {
         @apply font-sans bg-background text-foreground;
+        min-height: 100svh;
     }
     html {
         @apply font-sans;
+    }
+    ::selection {
+        background: var(--blue-100);
+        color: var(--gray-1000);
     }
 }

@@ -19,6 +19,12 @@ import from .components.LoginPage { LoginPage }
 import from .components.SettingsPage { SettingsPage }
 import from .components.SignupPage { SignupPage }
 
+import from services.negotiation {
+    StartNegotiation, SimulateProviderReply,
+    get_case, list_cases,
+    CaseView, CaseDetailView, LineItemView, MessageView
+}
+
 def:pub app() -> JsxElement {
     return <Router>
         <Routes>

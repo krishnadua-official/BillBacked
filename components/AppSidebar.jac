@@ -128,7 +128,7 @@ def:pub AppSidebar(
             </div>
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="border-t border-sidebar-border/70">
             <div className="p-1">
                 <AccountMenu
                     name={name}

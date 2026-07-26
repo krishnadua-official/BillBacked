@@ -9,6 +9,8 @@ import from "@jac/runtime" { Link }
 import from ".AppHeader" { PublicHeader }
 import from ".AuditStepsSection" { AuditStepsSection }
 import from ".BillDropZone" { BillDropZone }
+import from ".FaqSection" { FaqSection }
+import from ".SiteFooter" { SiteFooter }
 import from ".ui.badge" { Badge }
 
 
@@ -90,6 +92,8 @@ def:pub LandingPage() -> JsxElement {
                 </div>
             </section>
             <AuditStepsSection />
+            <FaqSection />
         </main>
+        <SiteFooter />
     </div>;
 }

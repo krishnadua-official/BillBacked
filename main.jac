@@ -8,7 +8,7 @@ import from services.pricing {
     PriceResult, LocalityInfo, LabPriceResult,
     get_price, list_localities, get_lab_price
 }
-import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bill }
+import from services.extractor { StructuredDocument, LineItem, DocumentType, upload_bills }
 import from services.negotiation {
     NegotiationCase, NegotiationCallResult,
     get_demo_negotiation_case, start_demo_negotiation_call

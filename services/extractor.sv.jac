@@ -124,12 +124,54 @@ def:protect extract_and_structure(file_bytes: bytes, mime: str, filename: str) -
 }
 
 
-"""The actual upload endpoint the client calls: base64-encoded file content
-in (not multipart -- the installed Jac server's request parser only accepts
-JSON bodies), StructuredDocument out. :protect -- JWT required, same
-per-user privacy model as the rest of this app."""
-def:protect upload_bill(file_b64: str, mime: str, filename: str) -> StructuredDocument {
-    data: bytes = b64decode(file_b64);
-    use_mime: str = mime if mime else _guess_mime(filename);
-    return extract_and_structure(data, use_mime, filename);
+def reconcile_documents(documents: list[StructuredDocument]) -> list[StructuredDocument] by llm();
+sem reconcile_documents = "These StructuredDocuments were each extracted from a separate file the same patient uploaded together as one case, so they likely describe the same visit or claim from different angles (an MSN, an EOB, a provider bill, a receipt). For every document, if patient_name, provider_name, claim_number, care_type, service_date_from, or service_date_to is empty or UNKNOWN, and another document in this same list states that value clearly, copy it in. Never overwrite a field that is already filled in, never invent a value that is not printed on any document in the list, and never change total_billed, total_patient_owed, total_paid, or line_items -- those belong to each document's own type and can legitimately differ between an EOB and a provider bill for the same visit. Return the full list, one entry per input document, in the same order they were given.";
+sem reconcile_documents.documents = "The batch of documents extracted from files uploaded together for one case, in upload order.";
+
+
+obj RawFile {
+    has data: bytes;
+    has mime: str;
+    has filename: str;
+}
+
+
+"""Batch counterpart to extract_and_structure: runs the same per-file
+mechanical + LLM pipeline over every file in one upload, tags every result
+with a single shared case_id, and -- only when more than one file came in
+together -- hands the whole batch to reconcile_documents so a document
+missing a field (e.g. an EOB with no patient name) can pick it up from
+another file in the same batch."""
+def extract_and_structure_many(files: list[RawFile]) -> list[StructuredDocument] {
+    case_id: str = _generate_case_id();
+    docs: list[StructuredDocument] = [];
+    for f in files {
+        doc: StructuredDocument = extract_and_structure(f.data, f.mime, f.filename);
+        doc.case_id = case_id;
+        docs.append(doc);
+    }
+    if len(docs) > 1 {
+        docs = reconcile_documents(docs);
+        for doc in docs {
+            doc.case_id = case_id;
+        }
+    }
+    return docs;
+}
+
+
+"""The upload endpoint the client calls: a list of base64-encoded files in
+(not multipart -- the installed Jac server's request parser only accepts
+JSON bodies), one StructuredDocument per file out, sharing a case_id and
+cross-filled from each other when the patient uploaded more than one file
+at once. :protect -- JWT required, same per-user privacy model as the rest
+of this app."""
+def:protect upload_bills(files: list[dict[str, str]]) -> list[StructuredDocument] {
+    raw_files: list[RawFile] = [];
+    for f in files {
+        data: bytes = b64decode(f["file_b64"]);
+        use_mime: str = f["mime"] if f["mime"] else _guess_mime(f["filename"]);
+        raw_files.append(RawFile(data=data, mime=use_mime, filename=f["filename"]));
+    }
+    return extract_and_structure_many(raw_files);
 }

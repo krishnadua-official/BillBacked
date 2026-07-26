@@ -65,3 +65,26 @@ test "every upload gets its own case_id, distinct across uploads" {
     assert first.case_id.startswith("BB-"), "expected the BB- case number prefix";
     assert first.case_id != second.case_id, "each upload should get its own case_id";
 }
+
+test "extract_and_structure_many shares one case_id across a multi-file upload and fills gaps between documents" {
+    files: list[RawFile] = [];
+    for name in ["eob.pdf", "itemized_bill.pdf", "msn.pdf"] {
+        with open(f"Sample Data/patient-02-james-obrien/{name}", "rb") as f {
+            data: bytes = f.read();
+        }
+        files.append(RawFile(data=data, mime="application/pdf", filename=name));
+    }
+    docs = extract_and_structure_many(files);
+    for doc in docs {
+        _print_doc("patient-02-james-obrien batch", doc);
+    }
+    assert len(docs) == 3, "expected one StructuredDocument per uploaded file";
+    case_ids: list[str] = [doc.case_id for doc in docs];
+    assert len(set(case_ids)) == 1, "every document from one upload batch should share a case_id";
+    assert case_ids[0].startswith("BB-"), "expected the BB- case number prefix";
+    assert all(doc.patient_name != "" for doc in docs), (
+        "patient name should end up filled on every document -- even if one file "
+        "didn't print it, reconcile_documents should have copied it from another "
+        "file in the same batch"
+    );
+}

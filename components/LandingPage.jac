@@ -8,6 +8,7 @@ dashboard.
 import from "@jac/runtime" { Link }
 import from ".AppHeader" { PublicHeader }
 import from ".BillDropZone" { BillDropZone }
+import from ".ui.badge" { Badge }
 
 
 def:pub LandingPage() -> JsxElement {
@@ -43,7 +44,7 @@ def:pub LandingPage() -> JsxElement {
                 />
                 <div className="mx-auto grid min-h-svh w-full max-w-7xl content-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center lg:gap-16 lg:py-24">
                     <div className="text-white">
-                        <p className="text-sm">Built for Medicare bills</p>
+                        <Badge variant="glass">Built for Medicare bills</Badge>
                         <h1 className="mt-8 max-w-3xl text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
                             Understand your bill before you pay it.
                         </h1>

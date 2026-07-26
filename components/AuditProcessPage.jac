@@ -13,6 +13,7 @@ import from ".InvoiceData" {
 }
 import from ".NegotiationCallControl" { NegotiationCallControl }
 sv import from ..services.extractor { StructuredDocument, upload_bills }
+sv import from ..services.bill { SaveExtractedBills }
 
 
 def:pub AuditStep(
@@ -136,6 +137,7 @@ def:pub AuditProcessPage() -> JsxElement {
                 }
                 docs = await upload_bills(file_inputs);
                 extracted_docs = docs;
+                await root spawn SaveExtractedBills(documents=docs);
             } except Exception as e {
                 error_message = str(e);
             }

@@ -28,6 +28,10 @@ import from services.patient {
     Patient, PatientView, CoverageType,
     my_patient, SavePatientProfile
 }
+import from services.bill {
+    Bill, BillLineItem, BillView, BillLineItemView,
+    my_bills, get_bill, SaveExtractedBills
+}
 
 cl {
     import ".styles.global.css";

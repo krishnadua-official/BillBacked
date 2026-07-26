@@ -43,11 +43,11 @@ glob RVU_COLS: list[str] = [
 glob DATA_DIR: str = "pricing";
 
 glob _rvu_cache: dict[str, any] = {};
-glob _gpci_cache: any = None;
-glob _oppscap_cache: any = None;
-glob _loc_cache: any = None;
-glob _anes_cache: any = None;
-glob _clfs_cache: any = None;
+glob _gpci_cache: dict[str, any] = {};
+glob _oppscap_cache: dict[str, any] = {};
+glob _loc_cache: dict[str, any] = {};
+glob _anes_cache: dict[str, any] = {};
+glob _clfs_cache: dict[str, any] = {};
 
 
 obj PriceResult {
@@ -132,8 +132,7 @@ def _load_rvu(qpp: bool) -> any {
 
 
 def _load_gpci() -> any {
-    global _gpci_cache;
-    if _gpci_cache is None {
+    if "value" not in _gpci_cache {
         g = pd.read_csv(f"{DATA_DIR}/GPCI2026.csv", skiprows=2, dtype=str);
         g.columns = [str(c).strip() for c in g.columns];
         g = g.rename(columns={
@@ -151,15 +150,14 @@ def _load_gpci() -> any {
         for c in ["PW_GPCI", "PE_GPCI", "MP_GPCI"] {
             g[c] = pd.to_numeric(g[c], errors="coerce");
         }
-        _gpci_cache = g;
+        _gpci_cache["value"] = g;
     }
-    return _gpci_cache;
+    return _gpci_cache["value"];
 }
 
 
 def _load_oppscap() -> any {
-    global _oppscap_cache;
-    if _oppscap_cache is None {
+    if "value" not in _oppscap_cache {
         o = pd.read_csv(f"{DATA_DIR}/OPPSCAP_Jan.csv", dtype=str);
         o.columns = [str(c).strip() for c in o.columns];
         o["HCPCS"] = o["HCPCS"].str.strip();
@@ -167,15 +165,14 @@ def _load_oppscap() -> any {
         o["CARRIER"] = o["CARRIER"].str.strip();
         o["FACILITY PRICE"] = pd.to_numeric(o["FACILITY PRICE"], errors="coerce");
         o["NON-FACILTY PRICE"] = pd.to_numeric(o["NON-FACILTY PRICE"], errors="coerce");
-        _oppscap_cache = o;
+        _oppscap_cache["value"] = o;
     }
-    return _oppscap_cache;
+    return _oppscap_cache["value"];
 }
 
 
 def _load_loc() -> any {
-    global _loc_cache;
-    if _loc_cache is None {
+    if "value" not in _loc_cache {
         loc_df = pd.read_csv(f"{DATA_DIR}/26LOCCO.csv", skiprows=2, dtype=str);
         loc_df.columns = [str(c).strip() for c in loc_df.columns];
         loc_df = loc_df.dropna(how="all");
@@ -183,37 +180,35 @@ def _load_loc() -> any {
         loc_df["Fee Schedule Area"] = loc_df["Fee Schedule Area"].str.strip();
         loc_df["State"] = loc_df["State"].str.strip();
         loc_df["Locality Number"] = loc_df["Locality Number"].str.strip();
-        _loc_cache = loc_df;
+        _loc_cache["value"] = loc_df;
     }
-    return _loc_cache;
+    return _loc_cache["value"];
 }
 
 
 def _load_anes() -> any {
-    global _anes_cache;
-    if _anes_cache is None {
+    if "value" not in _anes_cache {
         anes = pd.read_csv(f"{DATA_DIR}/ANES2026.csv", dtype=str);
         anes.columns = [str(c).strip() for c in anes.columns];
         anes["Locality"] = anes["Locality"].str.strip();
         anes["Contractor"] = anes["Contractor"].str.strip();
-        _anes_cache = anes;
+        _anes_cache["value"] = anes;
     }
-    return _anes_cache;
+    return _anes_cache["value"];
 }
 
 
 def _load_clfs() -> any {
-    global _clfs_cache;
-    if _clfs_cache is None {
+    if "value" not in _clfs_cache {
         df = pd.read_csv(f"{DATA_DIR}/PUF_CLFS_CY2026_Q3V1.csv", skiprows=3, dtype=str);
         df.columns = [str(c).strip() for c in df.columns];
         df["HCPCS"] = df["HCPCS"].str.strip().str.upper();
         df["MOD"] = df["MOD"].fillna("").str.strip();
         df["INDICATOR"] = df["INDICATOR"].str.strip();
         df["RATE"] = pd.to_numeric(df["RATE"], errors="coerce");
-        _clfs_cache = df;
+        _clfs_cache["value"] = df;
     }
-    return _clfs_cache;
+    return _clfs_cache["value"];
 }
 
 

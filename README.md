@@ -93,13 +93,18 @@ endpoints yet. Jac also supplies the authentication runtime used by `jacLogin`,
    settings, allow overrides for the system prompt and first message; the
    server supplies both for every fictional call.
 4. Create a restricted ElevenLabs API key that can use Conversational AI.
-5. Put the API key, agent ID, and imported ElevenLabs phone-number ID in the
-   ignored `.env.local`, then restart `jac start`. The backend
-   boundary remains available for the approved final stage, but no standalone
-   test-call route is exposed in the product UI.
+5. Put the API key, agent ID, imported ElevenLabs phone-number ID, and verified
+   test destination in the ignored `.env.local`, then restart `jac start`.
+   The final audit button starts the call directly; the browser never receives
+   or submits the destination phone number. While the call is active, the
+   control polls the server-owned ElevenLabs conversation status and shows the
+   negotiation lifecycle in the audit.
 
-The `TWILIO_*` values in `.env.local` document the native-integration setup but
-are not read by the BillBacked server. Twilio's temporary Try Out Voice number
+The Account SID, Auth Token, and Twilio number document the native-integration
+setup. The server reads `TWILIO_VERIFIED_DESTINATION_NUMBER` for the fictional
+demo only. A Twilio trial can call only verified destinations. In the real
+product, that environment boundary should be replaced by the approved provider
+contact stored on the invoice record. Twilio's temporary Try Out Voice number
 cannot be imported into ElevenLabs because it is not an API-manageable number;
 an active Twilio voice number is required to obtain
 `ELEVENLABS_PHONE_NUMBER_ID`.

@@ -14,6 +14,9 @@ import from urllib.request { Request, urlopen }
 glob ELEVENLABS_OUTBOUND_CALL_URL: str = (
     "https://api.elevenlabs.io/v1/convai/twilio/outbound-call"
 );
+glob ELEVENLABS_CONVERSATION_URL: str = (
+    "https://api.elevenlabs.io/v1/convai/conversations"
+);
 
 
 obj NegotiationCase {
@@ -183,19 +186,81 @@ def _post_outbound_call(
 }
 
 
-def:protect start_demo_negotiation_call(to_number: str) -> NegotiationCallResult {
-    try {
-        destination: str = _normalize_destination_number(to_number);
-    } except ValueError as e {
+def _get_conversation(
+    api_key: str,
+    conversation_id: str
+) -> dict[str, any] {
+    request = Request(
+        f"{ELEVENLABS_CONVERSATION_URL}/{conversation_id}",
+        headers={"xi-api-key": api_key},
+        method="GET"
+    );
+    response = urlopen(request, timeout=10);
+    response_body: bytes = response.read();
+    response.close();
+    parsed = json.loads(response_body.decode("utf-8"));
+    return parsed as dict[str, any];
+}
+
+
+def _call_status_result(
+    conversation_id: str,
+    provider_status: str
+) -> NegotiationCallResult {
+    if provider_status == "initiated" {
         return NegotiationCallResult(
-            status="invalid_destination",
-            message=str(e)
+            success=True,
+            status="calling",
+            message="Calling the provider now…",
+            conversation_id=conversation_id
         );
     }
+    if provider_status == "in-progress" {
+        return NegotiationCallResult(
+            success=True,
+            status="in_progress",
+            message="The agent is negotiating with the provider.",
+            conversation_id=conversation_id
+        );
+    }
+    if provider_status == "processing" {
+        return NegotiationCallResult(
+            success=True,
+            status="processing",
+            message="The call ended. Preparing the negotiation result…",
+            conversation_id=conversation_id
+        );
+    }
+    if provider_status == "done" {
+        return NegotiationCallResult(
+            success=True,
+            status="completed",
+            message="The negotiation call finished.",
+            conversation_id=conversation_id
+        );
+    }
+    if provider_status == "failed" {
+        return NegotiationCallResult(
+            status="failed",
+            message="The negotiation call failed. You can try again.",
+            conversation_id=conversation_id
+        );
+    }
+    return NegotiationCallResult(
+        status="provider_error",
+        message="ElevenLabs returned an unknown call status.",
+        conversation_id=conversation_id
+    );
+}
 
+
+def:protect start_demo_negotiation_call() -> NegotiationCallResult {
     api_key: str | None = os.getenv("ELEVENLABS_API_KEY");
     agent_id: str | None = os.getenv("ELEVENLABS_AGENT_ID");
     phone_number_id: str | None = os.getenv("ELEVENLABS_PHONE_NUMBER_ID");
+    destination_value: str | None = os.getenv(
+        "TWILIO_VERIFIED_DESTINATION_NUMBER"
+    );
     missing: list[str] = [];
     if not api_key {
         missing.append("ELEVENLABS_API_KEY");
@@ -206,10 +271,27 @@ def:protect start_demo_negotiation_call(to_number: str) -> NegotiationCallResult
     if not phone_number_id {
         missing.append("ELEVENLABS_PHONE_NUMBER_ID");
     }
+    if not destination_value {
+        missing.append("TWILIO_VERIFIED_DESTINATION_NUMBER");
+    }
     if missing {
         return NegotiationCallResult(
             status="configuration_required",
             message="Missing server configuration: " + ", ".join(missing)
+        );
+    }
+
+    try {
+        destination: str = _normalize_destination_number(
+            destination_value as str
+        );
+    } except ValueError as e {
+        return NegotiationCallResult(
+            status="configuration_required",
+            message=(
+                "Invalid server configuration for "
+                f"TWILIO_VERIFIED_DESTINATION_NUMBER: {str(e)}"
+            )
         );
     }
 
@@ -247,15 +329,71 @@ def:protect start_demo_negotiation_call(to_number: str) -> NegotiationCallResult
         success=success,
         status="calling" if success else "provider_error",
         message=(
-            str(provider_message)
-            if provider_message
+            "Calling the provider now…"
+            if success
             else (
-                "Your phone should ring shortly."
-                if success
+                str(provider_message)
+                if provider_message
                 else "ElevenLabs did not start the call."
             )
         ),
         conversation_id=str(conversation_value) if conversation_value else "",
         provider_call_id=str(call_value) if call_value else ""
+    );
+}
+
+
+def:protect get_demo_negotiation_call_status(
+    conversation_id: str
+) -> NegotiationCallResult {
+    if (
+        not conversation_id.startswith("conv_")
+        or not conversation_id[5:]
+        or not conversation_id[5:].isalnum()
+    ) {
+        return NegotiationCallResult(
+            status="invalid_conversation",
+            message="The call reference is invalid."
+        );
+    }
+
+    api_key: str | None = os.getenv("ELEVENLABS_API_KEY");
+    if not api_key {
+        return NegotiationCallResult(
+            status="configuration_required",
+            message="Missing server configuration: ELEVENLABS_API_KEY",
+            conversation_id=conversation_id
+        );
+    }
+
+    try {
+        response: dict[str, any] = _get_conversation(
+            api_key as str,
+            conversation_id
+        );
+    } except HTTPError as e {
+        return NegotiationCallResult(
+            status="provider_error",
+            message=f"ElevenLabs rejected the status request (HTTP {e.code}).",
+            conversation_id=conversation_id
+        );
+    } except URLError {
+        return NegotiationCallResult(
+            status="provider_unavailable",
+            message="The live call status is temporarily unavailable.",
+            conversation_id=conversation_id
+        );
+    } except Exception {
+        return NegotiationCallResult(
+            status="provider_error",
+            message="The live call status could not be loaded.",
+            conversation_id=conversation_id
+        );
+    }
+
+    provider_status_value = response.get("status", "");
+    return _call_status_result(
+        conversation_id,
+        str(provider_status_value) if provider_status_value else ""
     );
 }

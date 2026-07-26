@@ -118,7 +118,11 @@ obj BillView {
 """Every bill the calling user has ever uploaded, most recent first."""
 def my_bills() -> list[BillView] {
     bills = [b for b in [root -->][?:Bill]];
-    bills = sorted(bills, key=lambda (b: Bill) -> str : b.created_at, reverse=True);
+    bills = sorted(
+        bills,
+        key=lambda (b: Bill) -> str { return b.created_at; },
+        reverse=True
+    );
     return [b.to_view() for b in bills];
 }
 

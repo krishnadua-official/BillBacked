@@ -3,7 +3,7 @@
 import from "@jac/runtime" { Link, Navigate, jacIsLoggedIn, jacLogin, jacSignup, useNavigate }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" { Loading03Icon }
-import from ".BillAuditPage" { ProductHeader }
+import from ".AppHeader" { PublicHeader }
 import from ".ui.button" { Button }
 import from ".ui.field" { Field, FieldLabel }
 import from ".ui.input" { Input }
@@ -67,7 +67,7 @@ def:pub SignupPage() -> JsxElement {
     }
 
     return <div className="min-h-svh bg-background text-gray-1000">
-        <ProductHeader action_label="Home" action_href="/" />
+        <PublicHeader action_label="Home" action_href="/" />
         <main className="mx-auto flex min-h-[calc(100svh-5rem)] w-full max-w-7xl items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
             <section
                 className="w-full max-w-md"

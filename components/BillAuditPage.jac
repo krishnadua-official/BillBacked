@@ -6,40 +6,12 @@ that real analysis or negotiation has happened.
 """
 
 import from ".ui.button" { Button }
+import from ".AppHeader" { DashboardHeader }
 import from "..lib.utils" { cn }
-import from "@jac/runtime" { Link }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
     ArrowRight01Icon, CheckmarkCircle01Icon, Clock01Icon,
     File01Icon, Mail01Icon, Upload01Icon
-}
-
-
-def:pub ProductHeader(
-    action_label: str = "Sign in",
-    action_href: str = "/login"
-) -> JsxElement {
-    return <header className="border-b border-border/70 bg-background">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-            <Link
-                to="/"
-                className="rounded-lg text-base font-semibold tracking-[-0.03em] text-gray-1000 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-            >
-                BillBacked<span className="text-blue-700">.</span>
-            </Link>
-            <div className="flex items-center gap-4">
-                <span className="hidden text-sm text-gray-700 sm:inline">
-                    Medicare bill advocate
-                </span>
-                <Link
-                    to={action_href}
-                    className="rounded-full px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-                >
-                    {action_label}
-                </Link>
-            </div>
-        </div>
-    </header>;
 }
 
 
@@ -162,7 +134,7 @@ def:pub BillAuditPage() -> JsxElement {
 
     if file_name {
         return <div className="min-h-svh bg-background text-gray-1000">
-            <ProductHeader />
+            <DashboardHeader />
             <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] lg:gap-14">
                 <div className="flex min-w-0 flex-col gap-10">
                     <section
@@ -289,16 +261,16 @@ def:pub BillAuditPage() -> JsxElement {
     }
 
     return <div className="min-h-svh bg-background text-gray-1000">
-        <ProductHeader />
+        <DashboardHeader />
         <main className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-16">
             <section className="flex flex-col justify-center py-14 sm:py-20 lg:min-h-[520px] lg:py-24">
-                <p className="text-sm text-gray-700">Medicare bill advocate</p>
+                <p className="text-sm text-gray-700">New Medicare audit</p>
                 <div className="my-10">
                     <h1 className="max-w-2xl text-4xl font-medium tracking-[-0.06em] sm:text-5xl sm:leading-[1.02] lg:text-6xl">
-                        Find what your medical bill should cost.
+                        Start with your medical bill.
                     </h1>
                     <p className="mt-6 max-w-xl text-lg leading-7 text-gray-900">
-                        Upload a Medicare bill. BillBacked reads every charge, compares historical pricing, and prepares the dispute for you.
+                        Upload a PDF or clear photo. The agent will read every charge, compare Medicare pricing, and show its work here.
                     </p>
                 </div>
                 <p className="text-sm font-medium text-blue-700">
@@ -350,9 +322,9 @@ def:pub BillAuditPage() -> JsxElement {
             <section className="border-t border-border py-12 sm:py-16 lg:col-span-2">
                 <div className="grid gap-10 sm:grid-cols-[0.55fr_1fr_1fr_1fr] sm:gap-8">
                     <div>
-                        <p className="text-sm text-gray-700">How it works</p>
+                        <p className="text-sm text-gray-700">Your audit workflow</p>
                         <h2 className="mt-2 text-2xl font-medium tracking-[-0.04em]">
-                            From bill to fair price.
+                            What happens next.
                         </h2>
                     </div>
                     <WorkflowItem

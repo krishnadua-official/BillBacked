@@ -51,9 +51,6 @@ def:pub LandingPage() -> JsxElement {
                         <p className="mt-6 max-w-2xl text-balance text-lg leading-8">
                             BillBacked audits every charge, estimates the fair Medicare cost, and prepares provider outreach for your approval.
                         </p>
-                        <p className="mt-9 text-sm">
-                            Your dashboard stays private. No provider message is sent without your approval.
-                        </p>
                     </div>
 
                     <section

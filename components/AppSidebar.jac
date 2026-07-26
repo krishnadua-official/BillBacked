@@ -93,7 +93,11 @@ def:pub AppSidebar(
                                         aria-current={"page" if new_audit_active else None}
                                         className={"flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 " + new_audit_state}
                                     >
-                                        <HugeiconsIcon icon={AddInvoiceIcon} strokeWidth={2} />
+                                        <HugeiconsIcon
+                                            icon={AddInvoiceIcon}
+                                            strokeWidth={2}
+                                            className="size-4 shrink-0"
+                                        />
                                         <span>New audit</span>
                                     </Link>
                                 </SidebarMenuItem>

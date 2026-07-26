@@ -12,7 +12,7 @@ import from ".BillDropZone" { BillDropZone }
 
 def:pub LandingPage() -> JsxElement {
     return <div className="min-h-svh bg-background text-gray-1000">
-        <PublicHeader overlay={True} />
+        <PublicHeader overlay={True} inverse={True} />
         <main>
             <section className="relative isolate min-h-svh overflow-hidden">
                 <picture

@@ -19,7 +19,7 @@ def:pub AuditStepsSection() -> JsxElement {
                 </p>
             </div>
 
-            <ol className="mt-12 grid overflow-hidden rounded-[20px] border border-border/70 bg-background md:grid-cols-3 md:divide-x md:divide-border/70">
+            <ol className="mx-auto mt-12 grid max-w-6xl overflow-hidden rounded-[20px] border border-border/70 bg-background md:grid-cols-3 md:divide-x md:divide-border/70">
                 <li className="flex min-h-[300px] flex-col justify-between border-b border-border/70 p-6 sm:p-8 md:border-b-0">
                     <span
                         className="text-5xl font-medium tracking-[-0.04em] text-gray-600"

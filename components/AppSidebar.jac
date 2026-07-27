@@ -50,6 +50,9 @@ def:pub InvoiceHistoryLink(
         else "Needs review" if len(bill.review_flags) > 0
         else "Extracted"
     );
+    if bill.negotiation_status == "completed" {
+        detail_label = detail_label + " · Resolved";
+    }
     link_state = (
         "bg-sidebar-accent text-sidebar-accent-foreground"
         if active

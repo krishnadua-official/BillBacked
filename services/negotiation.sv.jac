@@ -7,6 +7,7 @@ leave BillBacked through this integration.
 
 import json;
 import os;
+import re;
 import from urllib.error { HTTPError, URLError }
 import from urllib.request { Request, urlopen }
 import from services.discrepancy { BillAudit, LineDiscrepancy }
@@ -44,6 +45,7 @@ obj NegotiationCallResult {
     has provider_call_id: str = "";
     has transcript_summary: str = "";
     has call_successful: bool | None = None;
+    has negotiated_amount: float | None = None;
 }
 
 
@@ -370,6 +372,33 @@ def _analysis_call_successful(response: dict[str, any]) -> bool | None {
 }
 
 
+"""Best-effort extraction of a final negotiated dollar figure out of the
+call summary text, e.g. "...reducing the total balance to $211.56" ->
+211.56. There's no structured field for this in ElevenLabs' response --
+the summary is free text -- so this takes the LAST dollar amount
+mentioned, on the heuristic that a resolution summary states the
+outcome amount last, after any amounts discussed along the way. Returns
+None (rather than guessing) when the summary contains no dollar amount
+at all; the human always sees the raw summary text either way, so a
+missed parse costs a fallback display, not a factual error.
+"""
+def _extract_negotiated_amount(summary: str) -> float | None {
+    if not summary {
+        return None;
+    }
+    matches = re.findall(r"\$([\d,]+(?:\.\d{1,2})?)", summary);
+    if not matches {
+        return None;
+    }
+    last: str = matches[-1].replace(",", "");
+    try {
+        return float(last);
+    } except Exception {
+        return None;
+    }
+}
+
+
 def _call_status_result(
     conversation_id: str,
     provider_status: str,
@@ -400,13 +429,15 @@ def _call_status_result(
         );
     }
     if provider_status == "done" {
+        summary: str = _summarize_analysis(response) if response is not None else "";
         return NegotiationCallResult(
             success=True,
             status="completed",
             message="The negotiation call finished.",
             conversation_id=conversation_id,
-            transcript_summary=(_summarize_analysis(response) if response is not None else ""),
+            transcript_summary=summary,
             call_successful=(_analysis_call_successful(response) if response is not None else None),
+            negotiated_amount=_extract_negotiated_amount(summary),
         );
     }
     if provider_status == "failed" {

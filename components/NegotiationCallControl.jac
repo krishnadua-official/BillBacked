@@ -89,7 +89,7 @@ def:pub NegotiationCallControl(
                         bill_id,
                         status_result.status,
                         status_result.transcript_summary,
-                        None,
+                        status_result.negotiated_amount,
                     );
                 } except Exception {
                     # Best-effort: the call result still displays for this
@@ -191,6 +191,11 @@ def:pub NegotiationCallControl(
                             }
                         >
                             {"Outcome: reached agreement" if result.call_successful else "Outcome: not resolved on this call"}
+                        </p>
+                    }}
+                    {if result.negotiated_amount is not None {
+                        <p key="call-amount" className="mt-1 text-xs font-medium text-gray-1000">
+                            {f"Negotiated balance: ${(result.negotiated_amount as float):.2f}"}
                         </p>
                     }}
                 </div>

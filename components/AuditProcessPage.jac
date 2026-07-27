@@ -232,6 +232,10 @@ def:pub AuditProcessPage() -> JsxElement {
                 error_message = str(e);
             }
             current_step = 4;
+            # Drop the uploaded-files route state now that processing is done --
+            # otherwise reloading this URL re-runs extraction and pricing from
+            # scratch every time, and re-saves a duplicate Bill on top of it.
+            nav(location.pathname, {"replace": True});
         }
     }
 
@@ -406,6 +410,11 @@ def:pub AuditProcessPage() -> JsxElement {
                                     else "The call completed. No summary was returned."
                                 }
                             </p>
+                            {if (resolved_bill as BillView).negotiated_amount is not None {
+                                <p key="history-negotiated-amount" className="mt-1 text-xs font-medium text-gray-1000">
+                                    {f"Negotiated balance: ${((resolved_bill as BillView).negotiated_amount as float):.2f}"}
+                                </p>
+                            }}
                         </div>
                     }}
                     {if is_history and len((resolved_bill as BillView).line_items) > 0 {

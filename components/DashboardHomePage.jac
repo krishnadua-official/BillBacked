@@ -35,7 +35,12 @@ def:pub InvoiceDashboardRow(bill: BillView) -> JsxElement {
     route: str = "/dashboard/invoices/" + bill.id;
     provider: str = bill.provider_name if bill.provider_name else "Unknown provider";
     billed_label: str = f"${bill.total_billed:.2f}" if bill.total_billed is not None else "--";
-    status_label: str = "Needs review" if len(bill.review_flags) > 0 else "Extracted";
+    is_resolved: bool = bill.negotiation_status == "completed";
+    status_label: str = (
+        "Resolved" if is_resolved
+        else "Needs review" if len(bill.review_flags) > 0
+        else "Extracted"
+    );
     date_label: str = bill.created_at[:10] if bill.created_at else "";
 
     def open_bill {
@@ -77,9 +82,9 @@ def:pub InvoiceDashboardRow(bill: BillView) -> JsxElement {
             <Badge
                 variant="outline"
                 className={
-                    "h-6 px-2.5 border-destructive/30 bg-destructive/5 text-destructive"
-                    if len(bill.review_flags) > 0
-                    else "h-6 border-success-border bg-success-background px-2.5 text-success"
+                    "h-6 border-success-border bg-success-background px-2.5 text-success"
+                    if is_resolved or len(bill.review_flags) == 0
+                    else "h-6 px-2.5 border-destructive/30 bg-destructive/5 text-destructive"
                 }
             >
                 {status_label}

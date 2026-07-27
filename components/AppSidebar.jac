@@ -165,7 +165,6 @@ def:pub AppSidebar(
                 <AccountMenu
                     name={name}
                     email={email}
-                    description="Private Medicare workspace"
                     variant="sidebar"
                     onLogout={onLogout}
                     onSettings={onSettings}

@@ -24,8 +24,7 @@ def:pub AccountMenu(
     email: str,
     onLogout: Callable[[], None],
     onSettings: Callable[[], None] | None = None,
-    variant: str = "header",
-    description: str = "Private Medicare workspace"
+    variant: str = "header"
 ) -> JsxElement {
     # Radix fires `onSelect` for keyboard AND pointer activation; `onClick`
     # only covers the mouse.
@@ -49,7 +48,6 @@ def:pub AccountMenu(
     menu_side = "top" if is_sidebar else "bottom";
     menu_align = "start" if is_sidebar else "end";
     menu_width = "w-60" if is_sidebar else "w-56";
-    secondary_text = email if email else (description if is_sidebar else "");
 
     return <DropdownMenu>
         <DropdownMenuTrigger asChild={True}>
@@ -66,12 +64,9 @@ def:pub AccountMenu(
                 {if is_sidebar {
                     <span
                         key="sidebar-account-copy"
-                        className="flex min-w-0 flex-col"
+                        className="min-w-0 truncate text-sm font-medium"
                     >
-                        <span className="truncate text-sm font-medium">{name}</span>
-                        <span className="truncate text-xs text-gray-900">
-                            {description}
-                        </span>
+                        {name}
                     </span>
                 } else {
                     <span
@@ -91,12 +86,12 @@ def:pub AccountMenu(
             <DropdownMenuLabel>
                 <div className="flex flex-col">
                     <span className="truncate text-sm font-medium">{name}</span>
-                    {if secondary_text {
+                    {if email {
                         <span
                             key="secondary-account-text"
                             className="truncate text-xs font-normal text-muted-foreground"
                         >
-                            {secondary_text}
+                            {email}
                         </span>
                     }}
                 </div>

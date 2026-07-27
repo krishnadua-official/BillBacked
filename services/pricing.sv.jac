@@ -295,6 +295,15 @@ def:pub get_price(
     if locs.empty {
         return PriceResult(hcpcs=code, error="No matching locality found. Try list_localities(state) to browse.");
     }
+    if len(locs) > 1 and not res_locality and not locality_name and not county {
+        # A bare state with no locality/county to disambiguate: CMS publishes a
+        # "REST OF <STATE>" catch-all locality for exactly this case -- prefer
+        # it over failing outright, since most callers only have a state.
+        rest_of_state = locs[locs["LOCALITY_NAME"].str.contains("REST OF", case=False, na=False)];
+        if len(rest_of_state) == 1 {
+            locs = rest_of_state;
+        }
+    }
     if len(locs) > 1 {
         names: list[str] = [f"{_row_str(r, 'STATE')} {_row_str(r, 'LOCALITY')} - {_row_str(r, 'LOCALITY_NAME')}"
                              for (_, r) in locs.iterrows()];

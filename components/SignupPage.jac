@@ -9,16 +9,6 @@ import from ".ui.input" { Input }
 sv import from ..services.patient { CoverageType, SavePatientProfile }
 
 
-def _coverage_type_from_str(value: str) -> CoverageType {
-    if value == "PRIVATE_INSURANCE" {
-        return CoverageType.PRIVATE_INSURANCE;
-    }
-    if value == "UNINSURED" {
-        return CoverageType.UNINSURED;
-    }
-    return CoverageType.MEDICARE;
-}
-
 def:pub SignupPage() -> JsxElement {
     has email: str = "",
         password: str = "",
@@ -77,10 +67,12 @@ def:pub SignupPage() -> JsxElement {
         }
 
         try {
-            await SavePatientProfile(
+            root spawn SavePatientProfile(
                 name="",
                 state=state,
-                coverage_type=_coverage_type_from_str(coverage_type),
+                coverage_type=coverage_type as CoverageType,
+                county=None,
+                locality=None,
             );
         } except Exception {
             # Best-effort: the account exists and is logged in either way --

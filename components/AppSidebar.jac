@@ -7,13 +7,11 @@ import from ".ui.sidebar" {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
     SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuItem
 }
-import from ".InvoiceData" {
-    invoice_ids, invoice_provider, invoice_route, invoice_savings_label
-}
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
     AddInvoiceIcon, Home01Icon, Invoice01Icon
 }
+sv import from ..services.bill { BillView, my_bills }
 
 
 def:pub PrimarySidebarLink(
@@ -42,12 +40,16 @@ def:pub PrimarySidebarLink(
 
 
 def:pub InvoiceHistoryLink(
-    invoice_id: str,
+    bill: BillView,
     active: bool
 ) -> JsxElement {
-    route: str = invoice_route(invoice_id) as str;
-    provider: str = invoice_provider(invoice_id) as str;
-    savings_label: str = invoice_savings_label(invoice_id) as str;
+    route: str = "/dashboard/invoices/" + bill.id;
+    provider: str = bill.provider_name if bill.provider_name else "Unknown provider";
+    detail_label: str = (
+        f"${bill.total_billed:,.2f} billed" if bill.total_billed is not None
+        else "Needs review" if len(bill.review_flags) > 0
+        else "Extracted"
+    );
     link_state = (
         "bg-sidebar-accent text-sidebar-accent-foreground"
         if active
@@ -69,8 +71,8 @@ def:pub InvoiceHistoryLink(
                 <span className="truncate text-sm font-medium">
                     {provider}
                 </span>
-                <span className="truncate text-xs font-normal text-gray-900">
-                    {savings_label}
+                <span className="truncate text-xs font-normal text-gray-700">
+                    {detail_label}
                 </span>
             </span>
         </Link>
@@ -85,7 +87,12 @@ def:pub AppSidebar(
     active_path: str = "",
     onSettings: Callable[[], None] | None = None
 ) -> JsxElement {
-    history_ids: list[str] = invoice_ids() as list[str];
+    has bills: list[BillView] = [];
+
+    async can with entry {
+        bills = await my_bills();
+    }
+
     home_active = active_path == "/dashboard";
     new_audit_active = (
         active_path == "/dashboard/new" or active_path == "/dashboard/audit"
@@ -142,14 +149,11 @@ def:pub AppSidebar(
                         <SidebarGroupContent>
                             <div className="[&_[data-sidebar=menu]]:gap-1">
                                 <SidebarMenu>
-                                    {for invoice_id in history_ids {
+                                    {for bill in bills {
                                         <InvoiceHistoryLink
-                                            key={invoice_id}
-                                            invoice_id={invoice_id}
-                                            active={
-                                                active_path
-                                                == (invoice_route(invoice_id) as str)
-                                            }
+                                            key={bill.id}
+                                            bill={bill}
+                                            active={active_path == "/dashboard/invoices/" + bill.id}
                                         />
                                     }}
                                 </SidebarMenu>

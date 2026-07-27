@@ -7,23 +7,76 @@ import from "@hugeicons/core-free-icons" {
 }
 import from ".ui.button" { Button }
 import from "..lib.utils" { cn }
-import from ".InvoiceData" {
-    invoice_completed_date, invoice_exists, invoice_file_name,
-    invoice_final_cost, invoice_provider, invoice_savings
-}
 import from ".NegotiationCallControl" { NegotiationCallControl }
 sv import from ..services.extractor { StructuredDocument, LineItem, upload_bills }
-sv import from ..services.bill { SaveExtractedBills }
-sv import from ..services.discrepancy { BillAudit, LineDiscrepancy, analyze_bill }
+sv import from ..services.bill { BillView, SaveExtractedBills, get_bill }
+sv import from ..services.discrepancy { BillAudit, analyze_bill }
 sv import from ..services.patient { PatientView, my_patient }
 
 
-def _billed_vs_benchmark_line(d: LineDiscrepancy) -> str {
-    code: str = d.hcpcs if d.hcpcs else "No code";
-    if d.benchmark_amount is not None {
-        return f"{code} -- billed ${d.billed_amount:,.2f} vs Medicare-approved ${d.benchmark_amount:,.2f}";
+"""Two rows count as the same real-world charge if they're from the same
+service date and share at least one matching dollar amount -- an EOB's
+codeless "Office visit, $340 billed" and an itemized bill's "99213, $340
+billed" for the same date are the same line, just seen from two documents.
+"""
+def _same_charge(a: LineItem, b: LineItem) -> bool {
+    if not a.service_date or not b.service_date or a.service_date != b.service_date {
+        return False;
     }
-    return f"{code} -- billed ${d.billed_amount:,.2f}";
+    a_amounts: list[float] = [x for x in [a.billed_amount, a.allowed_amount, a.paid_amount, a.patient_owed] if x is not None];
+    b_amounts: list[float] = [x for x in [b.billed_amount, b.allowed_amount, b.paid_amount, b.patient_owed] if x is not None];
+    for av in a_amounts {
+        for bv in b_amounts {
+            if abs(av - bv) < 0.01 {
+                return True;
+            }
+        }
+    }
+    return False;
+}
+
+
+def _merge_two_items(a: LineItem, b: LineItem) -> LineItem {
+    better_description: str = a.description if len(a.description) >= len(b.description) else b.description;
+    return LineItem(
+        description=better_description,
+        service_date=a.service_date if a.service_date else b.service_date,
+        code=a.code if a.code else b.code,
+        billed_amount=a.billed_amount if a.billed_amount is not None else b.billed_amount,
+        allowed_amount=a.allowed_amount if a.allowed_amount is not None else b.allowed_amount,
+        paid_amount=a.paid_amount if a.paid_amount is not None else b.paid_amount,
+        patient_owed=a.patient_owed if a.patient_owed is not None else b.patient_owed,
+    );
+}
+
+
+"""Collapse line items from multiple documents (an EOB and an itemized
+bill for the same visit, say) into one line per real charge, instead of
+auditing the same charge twice just because two documents both mention
+it. See _same_charge for the matching rule.
+"""
+def _merge_line_items(items: list[LineItem]) -> list[LineItem] {
+    n: int = len(items);
+    used: list[bool] = [False for _ in range(n)];
+    merged: list[LineItem] = [];
+    for i in range(n) {
+        if used[i] {
+            continue;
+        }
+        current: LineItem = items[i];
+        used[i] = True;
+        for j in range(i + 1, n) {
+            if used[j] {
+                continue;
+            }
+            if _same_charge(current, items[j]) {
+                current = _merge_two_items(current, items[j]);
+                used[j] = True;
+            }
+        }
+        merged.append(current);
+    }
+    return merged;
 }
 
 
@@ -94,10 +147,15 @@ def:pub AuditStep(
 def:pub AuditProcessPage() -> JsxElement {
     has current_step: int = 1;
     has extracted_docs: list[StructuredDocument] = [];
+    has merged_items: list[LineItem] = [];
     has audit: BillAudit | None = None;
     has patient_profile: PatientView | None = None;
     has needs_patient_profile: bool = False;
+    has priced_state: str = "";
+    has priced_locality: str | None = None;
     has error_message: str = "";
+    has resolved_bill: BillView | None = None;
+    has bill_lookup_done: bool = False;
 
     location = useLocation();
     nav = useNavigate();
@@ -105,14 +163,8 @@ def:pub AuditProcessPage() -> JsxElement {
     route_state = location["state"];
     invoice_id_value = params["invoice_id"];
     invoice_id = str(invoice_id_value) if invoice_id_value else "";
-    is_history: bool = (
-        (invoice_exists(invoice_id) as bool) if invoice_id else False
-    );
-    file_name = "Uploaded Medicare bill";
-    provider_name = "Your provider";
-    final_cost = "";
-    savings = "";
-    completed_date = "";
+    has_invoice_id: bool = invoice_id != "";
+    is_history: bool = has_invoice_id and resolved_bill is not None;
     file_names: list[str] = (
         list(route_state["file_names"]) if route_state and route_state["file_names"] else []
     );
@@ -120,20 +172,15 @@ def:pub AuditProcessPage() -> JsxElement {
         list(route_state["files"]) if route_state and route_state["files"] else []
     );
 
-    if is_history {
-        file_name = invoice_file_name(invoice_id) as str;
-        provider_name = invoice_provider(invoice_id) as str;
-        final_cost = invoice_final_cost(invoice_id) as str;
-        savings = invoice_savings(invoice_id) as str;
-        completed_date = invoice_completed_date(invoice_id) as str;
-    }
-
     # Completed invoices sit beyond the final outreach step so every stage is
     # rendered as complete. Active audits stop for approval before outreach.
     visible_step = 6 if is_history else current_step;
 
-    async can with entry {
-        if not is_history and uploaded_files {
+    async can with [invoice_id] entry {
+        if has_invoice_id {
+            resolved_bill = await get_bill(invoice_id);
+            bill_lookup_done = True;
+        } elif uploaded_files {
             current_step = 2;
             try {
                 file_inputs: list[dict] = [];
@@ -151,25 +198,32 @@ def:pub AuditProcessPage() -> JsxElement {
                 }
                 docs = await upload_bills(file_inputs);
                 extracted_docs = docs;
-                await root spawn SaveExtractedBills(documents=docs);
+
+                raw_items: list[LineItem] = [];
+                for doc in docs {
+                    raw_items.extend(doc.line_items);
+                }
+                merged: list[LineItem] = _merge_line_items(raw_items);
+                merged_items = merged;
 
                 current_step = 3;
                 patient: PatientView | None = await my_patient();
+                computed_audit: BillAudit | None = None;
                 if patient is not None {
                     patient_profile = patient;
-                    all_items: list[LineItem] = [];
-                    for doc in docs {
-                        all_items.extend(doc.line_items);
-                    }
-                    audit = await analyze_bill(
-                        all_items,
+                    computed_audit = await analyze_bill(
+                        merged,
                         state=(patient as PatientView).state,
                         locality=(patient as PatientView).locality,
                         county=(patient as PatientView).county,
                     );
+                    audit = computed_audit;
+                    priced_state = (patient as PatientView).state;
+                    priced_locality = (patient as PatientView).locality;
                 } else {
                     needs_patient_profile = True;
                 }
+                await root spawn SaveExtractedBills(documents=docs, audit=computed_audit);
             } except Exception as e {
                 error_message = str(e);
             }
@@ -189,14 +243,36 @@ def:pub AuditProcessPage() -> JsxElement {
         and len(extracted_docs) > 0
         and (audit as BillAudit).flagged_count > 0
     );
+    found_patient_name: str = "";
+    for doc in extracted_docs {
+        if doc.patient_name {
+            found_patient_name = doc.patient_name;
+            break;
+        }
+    }
+    found_provider_name: str = "";
+    for doc in extracted_docs {
+        if doc.provider_name {
+            found_provider_name = doc.provider_name;
+            break;
+        }
+    }
 
-    status_title = "Negotiation complete" if is_history else "Reading your bills";
+    status_title = "Bill on file" if is_history else "Reading your bills";
     status_copy = (
-        provider_name + " accepted the final amount. The full audit trail remains available here."
+        (
+            ((resolved_bill as BillView).provider_name or "This provider")
+            + " -- reviewed "
+            + ((resolved_bill as BillView).created_at[:10] if (resolved_bill as BillView).created_at else "earlier")
+            + "."
+        )
         if is_history
         else "Extracting charge lines and provider information from every file you uploaded."
     );
-    if not is_history and current_step == 2 {
+    if has_invoice_id and bill_lookup_done and resolved_bill is None {
+        status_title = "Bill not found";
+        status_copy = "We couldn't find that bill, or it doesn't belong to your account.";
+    } elif not is_history and not has_invoice_id and current_step == 2 {
         status_title = "Organizing your charges";
         status_copy = "Classifying each item by service, provider, location, and Medicare context -- and filling in anything one file was missing from the others.";
     } elif not is_history and current_step == 3 {
@@ -251,10 +327,10 @@ def:pub AuditProcessPage() -> JsxElement {
                             />
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-gray-1000">
-                                    {file_name}
+                                    {(resolved_bill as BillView).provider_name if (resolved_bill as BillView).provider_name else "Uploaded bill"}
                                 </p>
                                 <p className="mt-1 text-xs text-gray-700">
-                                    {completed_date}
+                                    {str((resolved_bill as BillView).document_type)}
                                 </p>
                             </div>
                         </div>
@@ -280,22 +356,72 @@ def:pub AuditProcessPage() -> JsxElement {
                     }}
                     {if is_history {
                         <div
-                            key="negotiated-result"
-                            className="mt-4 grid grid-cols-2 gap-3"
+                            key="bill-on-file-detail"
+                            className="mt-4 grid grid-cols-3 gap-3"
                         >
                             <div className="rounded-2xl bg-background-200 p-4">
-                                <p className="text-xs text-gray-900">Final bill</p>
+                                <p className="text-xs text-gray-900">Billed total</p>
                                 <p className="mt-2 text-xl font-medium tracking-[-0.04em]">
-                                    {final_cost}
+                                    {
+                                        f"${(resolved_bill as BillView).total_billed:,.2f}"
+                                        if (resolved_bill as BillView).total_billed is not None
+                                        else "Not printed"
+                                    }
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Medicare-approved</p>
+                                <p className="mt-2 text-xl font-medium tracking-[-0.04em]">
+                                    {
+                                        f"${(resolved_bill as BillView).total_benchmark:,.2f}"
+                                        if (resolved_bill as BillView).total_benchmark is not None
+                                        else "Not calculated"
+                                    }
                                 </p>
                             </div>
                             <div className="rounded-2xl bg-blue-100 p-4">
-                                <p className="text-xs text-gray-900">You saved</p>
+                                <p className="text-xs text-gray-900">Potential savings</p>
                                 <p className="mt-2 text-xl font-medium tracking-[-0.04em] text-blue-700">
-                                    {savings}
+                                    {
+                                        f"${(resolved_bill as BillView).total_overcharge:,.2f}"
+                                        if (resolved_bill as BillView).total_overcharge is not None
+                                        else "--"
+                                    }
                                 </p>
                             </div>
                         </div>
+                    }}
+                    {if is_history and len((resolved_bill as BillView).line_items) > 0 {
+                        <div key="history-line-items" className="mt-5 flex flex-col gap-2">
+                            {for item in (resolved_bill as BillView).line_items {
+                                <div
+                                    key={item.id}
+                                    className="flex items-center justify-between gap-3 rounded-2xl bg-background-200 p-4"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-gray-1000">
+                                            {item.description if item.description else "Unlabeled charge"}
+                                        </p>
+                                        {if item.code {
+                                            <p key="code" className="mt-1 text-xs text-gray-700">
+                                                {f"Code {item.code}"}
+                                            </p>
+                                        }}
+                                    </div>
+                                    <p className="shrink-0 text-sm font-medium tabular-nums text-gray-1000">
+                                        {f"${item.billed_amount:,.2f}" if item.billed_amount is not None else "--"}
+                                    </p>
+                                </div>
+                            }}
+                        </div>
+                    }}
+                    {if not is_history and has_invoice_id and bill_lookup_done and resolved_bill is None {
+                        <p
+                            key="bill-not-found"
+                            className="mt-5 text-sm leading-6 text-gray-900"
+                        >
+                            This bill may have been removed, or belongs to a different account.
+                        </p>
                     } else {
                         <p
                             key="approval-copy"
@@ -329,50 +455,49 @@ def:pub AuditProcessPage() -> JsxElement {
                                 </span>
                             }}
                         </div>
-                        {if len(extracted_docs) > 1 {
-                            <p key="reconcile-note" className="mt-2 text-xs text-gray-700">
-                                Anything one file was missing (like the patient or provider name) was filled in from the others.
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Patient</p>
+                                <p className="mt-2 text-sm font-medium text-gray-1000">
+                                    {found_patient_name if found_patient_name else "Not found"}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-background-200 p-4">
+                                <p className="text-xs text-gray-900">Provider</p>
+                                <p className="mt-2 text-sm font-medium text-gray-1000">
+                                    {found_provider_name if found_provider_name else "Not found"}
+                                </p>
+                            </div>
+                        </div>
+                        {if len(merged_items) > 0 {
+                            <div key="charges" className="mt-5 flex flex-col gap-2">
+                                {[
+                                    <div
+                                        key={str(idx) + "-" + (item.code or "no-code")}
+                                        className="flex items-center justify-between gap-3 rounded-2xl bg-background-200 p-4"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium text-gray-1000">
+                                                {item.description if item.description else "Unlabeled charge"}
+                                            </p>
+                                            {if item.code {
+                                                <p key="code" className="mt-1 text-xs text-gray-700">
+                                                    {f"Code {item.code}"}
+                                                </p>
+                                            }}
+                                        </div>
+                                        <p className="shrink-0 text-sm font-medium tabular-nums text-gray-1000">
+                                            {f"${item.billed_amount:,.2f}" if item.billed_amount is not None else "--"}
+                                        </p>
+                                    </div>
+                                    for (idx, item) in enumerate(merged_items)
+                                ]}
+                            </div>
+                        } else {
+                            <p key="no-charges" className="mt-5 text-sm text-gray-900">
+                                No itemized charges were found in these documents.
                             </p>
                         }}
-                        <div className="mt-5 flex flex-col gap-4">
-                            {[
-                                <div
-                                    key={doc.case_id + "-" + str(idx)}
-                                    className="rounded-2xl border border-border p-4"
-                                >
-                                    <p className="truncate text-xs font-medium text-gray-700">
-                                        {file_names[idx] if idx < len(file_names) else "Uploaded file"}
-                                    </p>
-                                    <div className="mt-3 grid grid-cols-2 gap-3">
-                                        <div className="rounded-2xl bg-background-200 p-4">
-                                            <p className="text-xs text-gray-900">Patient</p>
-                                            <p className="mt-2 text-sm font-medium text-gray-1000">
-                                                {doc.patient_name if doc.patient_name else "Not found"}
-                                            </p>
-                                        </div>
-                                        <div className="rounded-2xl bg-background-200 p-4">
-                                            <p className="text-xs text-gray-900">Provider</p>
-                                            <p className="mt-2 text-sm font-medium text-gray-1000">
-                                                {doc.provider_name if doc.provider_name else "Not found"}
-                                            </p>
-                                        </div>
-                                        <div className="rounded-2xl bg-background-200 p-4">
-                                            <p className="text-xs text-gray-900">Document type</p>
-                                            <p className="mt-2 text-sm font-medium text-gray-1000">
-                                                {str(doc.document_type)}
-                                            </p>
-                                        </div>
-                                        <div className="rounded-2xl bg-blue-100 p-4">
-                                            <p className="text-xs text-gray-900">Line items found</p>
-                                            <p className="mt-2 text-sm font-medium text-blue-700">
-                                                {len(doc.line_items)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                for (idx, doc) in enumerate(extracted_docs)
-                            ]}
-                        </div>
                     </section>
                 }}
 
@@ -399,44 +524,53 @@ def:pub AuditProcessPage() -> JsxElement {
                                 </p>
                             </div>
                         </div>
-                        <p className="mt-4 text-xs text-gray-700">
-                            {(audit as BillAudit).flagged_count} of {len((audit as BillAudit).discrepancies)} line items flagged for review.
+                        <p className="mt-4 text-sm leading-6 text-gray-900">
+                            {
+                                f"{(audit as BillAudit).flagged_count} of {len((audit as BillAudit).discrepancies)} line items were flagged for review -- charges billed above the Medicare-approved rate, missing codes, or possible duplicates."
+                                if (audit as BillAudit).flagged_count > 0
+                                else "Every line item matched the Medicare-approved rate. Nothing was flagged."
+                            }
                         </p>
-                        <div className="mt-5 flex flex-col gap-3">
-                            {[
+                        {if (audit as BillAudit).unresolved_count > 0 {
+                            <p key="unresolved-note" className="mt-2 text-xs text-gray-700">
+                                {f"{(audit as BillAudit).unresolved_count} item(s) below have no Medicare Physician Fee Schedule price (e.g. facility charges, supplies, room fees) and are excluded from the savings total."}
+                            </p>
+                        }}
+                        <div key="breakdown" className="mt-5 flex flex-col gap-2">
+                            {for disc in (audit as BillAudit).discrepancies {
                                 <div
-                                    key={str(idx) + "-" + (d.hcpcs or "no-code")}
-                                    className={cn(
-                                        "rounded-2xl border p-4",
-                                        "border-blue-200 bg-blue-100/40" if d.flagged else "border-border"
-                                    )}
+                                    key={disc.hcpcs + "-" + disc.description}
+                                    className="flex items-center justify-between gap-3 rounded-2xl bg-background-200 p-4"
                                 >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-medium text-gray-1000">
-                                                {d.description if d.description else "Unlabeled charge"}
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-gray-1000">
+                                            {disc.description if disc.description else "Unlabeled charge"}
+                                        </p>
+                                        {if disc.hcpcs {
+                                            <p key="hcpcs" className="mt-1 text-xs text-gray-700">
+                                                {f"Code {disc.hcpcs}"}
                                             </p>
-                                            <p className="mt-1 text-xs text-gray-700">
-                                                {_billed_vs_benchmark_line(d)}
+                                        }}
+                                        {if disc.flagged {
+                                            <p key="reason" className="mt-1 text-xs text-destructive">
+                                                {disc.flag_reason}
                                             </p>
-                                        </div>
-                                        {if d.flagged {
-                                            <span
-                                                key="flag-badge"
-                                                className="shrink-0 rounded-full bg-blue-700 px-2 py-1 text-xs font-medium text-white"
-                                            >
-                                                Flagged
-                                            </span>
                                         }}
                                     </div>
-                                    {if d.flag_reason {
-                                        <p key="flag-reason" className="mt-2 text-xs leading-5 text-gray-900">
-                                            {d.flag_reason}
+                                    <div className="shrink-0 text-right">
+                                        <p className="text-sm font-medium tabular-nums text-gray-1000">
+                                            {f"${disc.billed_amount:,.2f} billed"}
                                         </p>
-                                    }}
+                                        <p className="mt-1 text-xs tabular-nums text-gray-700">
+                                            {
+                                                f"${(disc.benchmark_amount as float):,.2f} Medicare-approved"
+                                                if disc.benchmark_amount is not None
+                                                else "No Medicare rate found"
+                                            }
+                                        </p>
+                                    </div>
                                 </div>
-                                for (idx, d) in enumerate((audit as BillAudit).discrepancies)
-                            ]}
+                            }}
                         </div>
                     </section>
                 }}
@@ -463,9 +597,21 @@ def:pub AuditProcessPage() -> JsxElement {
                         description="Extract charge lines, codes, dates, and provider details."
                     >
                         {if not is_history and len(extracted_docs) > 0 {
-                            <p key="step1-info" className="mt-2 text-xs text-gray-700">
-                                {len(extracted_docs)} document{"s" if len(extracted_docs) != 1 else ""} processed.
-                            </p>
+                            <div key="step1-info" className="mt-2 flex flex-col gap-0.5 text-xs text-gray-700">
+                                <p>
+                                    {len(extracted_docs)} document{"s" if len(extracted_docs) != 1 else ""} processed.
+                                </p>
+                                {if found_patient_name {
+                                    <p key="step1-patient">
+                                        {f"Patient: {found_patient_name}"}
+                                    </p>
+                                }}
+                                {if found_provider_name {
+                                    <p key="step1-provider">
+                                        {f"Provider: {found_provider_name}"}
+                                    </p>
+                                }}
+                            </div>
                         }}
                     </AuditStep>
                     <AuditStep
@@ -492,9 +638,22 @@ def:pub AuditProcessPage() -> JsxElement {
                             </p>
                         }}
                         {if not is_history and audit is not None {
-                            <p key="step3-savings" className="mt-2 text-xs font-medium text-blue-700">
-                                {f"Potential savings: ${(audit as BillAudit).total_overcharge:,.2f}"}
-                            </p>
+                            <div key="step3-savings" className="mt-2 flex flex-col gap-0.5 text-xs">
+                                <p className="text-gray-700">
+                                    {
+                                        f"Target (Medicare-approved) price: ${(audit as BillAudit).total_benchmark:,.2f} "
+                                        + f"(for the {len((audit as BillAudit).discrepancies) - (audit as BillAudit).unresolved_count} of {len((audit as BillAudit).discrepancies)} items with a Medicare rate)"
+                                    }
+                                </p>
+                                <p className="font-medium text-blue-700">
+                                    {f"Potential savings: ${(audit as BillAudit).total_overcharge:,.2f}"}
+                                </p>
+                                {if (audit as BillAudit).unresolved_count > 0 {
+                                    <p key="step3-unresolved" className="text-gray-700">
+                                        {f"{(audit as BillAudit).unresolved_count} item(s) have no Medicare rate on file and are not counted above -- see the breakdown below."}
+                                    </p>
+                                }}
+                            </div>
                         }}
                         {if not is_history and needs_patient_profile {
                             <p key="step3-needs-profile" className="mt-2 text-xs text-gray-700">
@@ -507,7 +666,17 @@ def:pub AuditProcessPage() -> JsxElement {
                         current_step={visible_step}
                         title="Review and approve"
                         description="Review the true-cost bill and approve the provider outreach."
-                    />
+                    >
+                        {if not is_history and priced_state {
+                            <p key="step4-state" className="mt-2 text-xs text-gray-700">
+                                {
+                                    f"Priced using {priced_state}, locality {priced_locality} Medicare rates."
+                                    if priced_locality
+                                    else f"Priced using {priced_state} Medicare rates."
+                                }
+                            </p>
+                        }}
+                    </AuditStep>
                     <AuditStep
                         step={5}
                         current_step={visible_step}

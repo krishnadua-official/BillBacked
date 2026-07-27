@@ -55,6 +55,7 @@ obj BillAudit {
     has total_benchmark: float = 0.0;
     has total_overcharge: float = 0.0;
     has flagged_count: int = 0;
+    has unresolved_count: int = 0;
     has discrepancies: list[LineDiscrepancy] = [];
 }
 
@@ -197,6 +198,7 @@ def:pub analyze_bill(
             disc.benchmark_source = lookup.source;
             disc.overcharge_amount = billed - benchmark;
             audit.total_benchmark += benchmark;
+            audit.total_overcharge += disc.overcharge_amount as float;
 
             if benchmark > 0.0 {
                 overcharge_amt: float = disc.overcharge_amount as float;
@@ -211,10 +213,13 @@ def:pub analyze_bill(
                 disc.code_mismatch = True;
                 reasons.append(f"Billed as '{item.description}' but code {code} is officially described as '{lookup.cms_description}' -- possible mismatched code.");
             }
-        } elif lookup.error is not None {
-            reasons.append(lookup.error);
         } else {
-            reasons.append("Could not resolve a benchmark price for this code.");
+            audit.unresolved_count += 1;
+            if lookup.error is not None {
+                reasons.append(lookup.error);
+            } else {
+                reasons.append("Could not resolve a benchmark price for this code.");
+            }
         }
 
         if code != "" {
@@ -234,7 +239,6 @@ def:pub analyze_bill(
         audit.discrepancies.append(disc);
     }
 
-    audit.total_overcharge = audit.total_billed - audit.total_benchmark;
     return audit;
 }
 
@@ -253,8 +257,9 @@ sem LineDiscrepancy.flag_reason = "Plain-English explanation of why this line is
 
 sem BillAudit.total_billed = "Sum of billed_amount across every line item.";
 sem BillAudit.total_benchmark = "Sum of benchmark_amount across every line item that resolved one.";
-sem BillAudit.total_overcharge = "total_billed minus total_benchmark.";
+sem BillAudit.total_overcharge = "Sum of overcharge_amount across only the line items that resolved a benchmark -- items with no resolvable Medicare rate are excluded, not counted as full overcharge.";
 sem BillAudit.flagged_count = "Number of line items with flagged = True.";
+sem BillAudit.unresolved_count = "Number of line items with no resolvable Medicare benchmark (no code, code not found in MPFS/CLFS) -- excluded from total_benchmark and total_overcharge.";
 sem BillAudit.discrepancies = "One LineDiscrepancy per input line item, in the same order they were given.";
 
 sem analyze_bill = "Deterministically price every line item against Medicare benchmarks (MPFS/CLFS) and flag overcharges (>15% over benchmark), exact duplicate code+service-date entries, and lines with no extracted code or billed amount. Call this FIRST to get exact, free numbers for any line item with a clean HCPCS code -- never guess a number this can compute exactly.";

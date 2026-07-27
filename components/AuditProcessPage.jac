@@ -3,7 +3,7 @@
 import from "@jac/runtime" { useLocation, useNavigate, useParams }
 import from "@hugeicons/react" { HugeiconsIcon }
 import from "@hugeicons/core-free-icons" {
-    CheckmarkCircle01Icon, Clock01Icon, File01Icon, Mail01Icon
+    CheckmarkCircle01Icon, File01Icon, Mail01Icon
 }
 import from ".ui.button" { Button }
 import from "..lib.utils" { cn }
@@ -224,25 +224,9 @@ def:pub AuditProcessPage() -> JsxElement {
                     aria-labelledby="audit-status-title"
                     aria-live="polite"
                 >
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <HugeiconsIcon
-                            icon={Clock01Icon}
-                            strokeWidth={2}
-                            className="size-4"
-                        />
-                        {
-                            "Negotiation complete"
-                            if is_history
-                            else (
-                                "Audit ready"
-                                if visible_step >= 4
-                                else "Audit in progress"
-                            )
-                        }
-                    </div>
                     <h1
                         id="audit-status-title"
-                        className="mt-8 text-3xl font-medium tracking-[-0.05em] sm:text-4xl"
+                        className="text-3xl font-medium tracking-[-0.05em] sm:text-4xl"
                     >
                         {status_title}
                     </h1>
@@ -463,10 +447,9 @@ def:pub AuditProcessPage() -> JsxElement {
                 aria-labelledby="audit-progress-title"
             >
                 <div>
-                    <p className="text-sm text-gray-700">Live agent activity</p>
                     <h2
                         id="audit-progress-title"
-                        className="mt-2 text-2xl font-medium tracking-[-0.04em]"
+                        className="text-2xl font-medium tracking-[-0.04em]"
                     >
                         Audit progress
                     </h2>

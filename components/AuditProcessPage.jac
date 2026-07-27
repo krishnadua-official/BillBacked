@@ -217,7 +217,7 @@ def:pub AuditProcessPage() -> JsxElement {
         status_copy = "You will approve the true-cost bill before any provider outreach begins.";
     }
 
-    return <div className="mx-auto grid w-full max-w-7xl flex-1 gap-10 px-4 py-10 text-gray-1000 sm:px-8 sm:py-14 lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] lg:gap-14">
+    return <div className="mx-auto grid w-full max-w-7xl flex-1 gap-10 px-4 py-10 text-gray-1000 sm:px-8 sm:py-14 lg:min-h-[calc(100svh-3rem)] lg:grid-cols-[minmax(280px,0.76fr)_minmax(0,1.24fr)] lg:gap-14">
             <div className="flex min-w-0 flex-col gap-10">
                 <section
                     className="py-2"
@@ -459,7 +459,7 @@ def:pub AuditProcessPage() -> JsxElement {
             </div>
 
             <section
-                className="min-w-0 border-t border-border pt-10 lg:border-l lg:border-t-0 lg:pl-14 lg:pt-2"
+                className="min-w-0 border-t border-border pt-10 lg:-my-14 lg:border-l lg:border-t-0 lg:py-16 lg:pl-14"
                 aria-labelledby="audit-progress-title"
             >
                 <div>

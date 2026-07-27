@@ -66,10 +66,10 @@ obj LineItem {
     has paid_amount: float | None = None;
     has patient_owed: float | None = None;
 }
-sem LineItem.description = "What the charge was for, with reference numbers/dates/dollar amounts stripped out.";
-sem LineItem.service_date = "Date of service for this line, as printed (e.g. 02/18/2025).";
-sem LineItem.code = "CPT/HCPCS/revenue code for this line if one is printed, else empty string.";
-sem LineItem.billed_amount = "The provider's full charge for this line before any adjustment, if shown.";
+sem LineItem.description = "Concise description of this distinct financial row, preserving the document's own meaning without copying reference numbers, dates, or dollar amounts into the description.";
+sem LineItem.service_date = "The date, date range, or coverage period associated with this row exactly as printed. Use empty string when no date applies.";
+sem LineItem.code = "Any CPT, HCPCS, revenue, plan, or other identifying code printed for this row. Use empty string when the document does not use a code.";
+sem LineItem.billed_amount = "The amount charged for this row before adjustments when that concept applies. Use None when the document expresses the row only as an amount owed, paid, allowed, adjusted, or credited.";
 sem LineItem.allowed_amount = "The insurer-approved/allowed amount for this line (may be labeled Approved, Allowed, or Plan Allowed).";
 sem LineItem.paid_amount = "What the insurer (or patient, on a receipt) actually paid for this line.";
 sem LineItem.patient_owed = "What the patient owes/owed for this line (labeled Owe, Responsibility, Copay, or similar).";
@@ -93,19 +93,19 @@ obj StructuredDocument {
 sem StructuredDocument.case_id = "Always leave as empty string -- assigned by the system after extraction, never printed on the document itself.";
 sem StructuredDocument.care_type = "One or two words for the kind of care (office visit, emergency room, imaging, surgery, physical therapy, pharmacy, hospital, ...), or UNKNOWN if not evident.";
 sem StructuredDocument.patient_name = "The patient's full name, normalized to 'Last, First' (or 'Last, First M') form regardless of how it was printed. Empty string if truly absent.";
-sem StructuredDocument.provider_name = "The billing provider/facility name (not the insurer), e.g. 'Stanford Hospital'.";
+sem StructuredDocument.provider_name = "The organization responsible for issuing this billing document. Usually the billing provider or facility; for another kind of bill, use the issuer named by the document. Empty string if no issuer is clear.";
 sem StructuredDocument.claim_number = "The insurance claim number if printed, else empty string.";
 sem StructuredDocument.service_date_from = "Earliest date of service covered by this document (MM/DD/YYYY as printed).";
 sem StructuredDocument.service_date_to = "Latest date of service covered by this document (MM/DD/YYYY as printed).";
 sem StructuredDocument.total_billed = "The document's own stated total charge, if any (e.g. 'Total Charges', 'Total Hospital Charges'). Do not compute it yourself from line items.";
 sem StructuredDocument.total_patient_owed = "The document's own stated balance due / patient responsibility total, if any. Do not compute it yourself.";
 sem StructuredDocument.total_paid = "The document's own stated amount actually paid (by insurer or patient), if any. Do not compute it yourself.";
-sem StructuredDocument.line_items = "Every itemized charge row found. Skip summary/total rows (Total, Balance Due, Patient Responsibility, Payments Received, Contractual Adjustments) -- those belong in the total_* fields, not here.";
+sem StructuredDocument.line_items = "Use your judgment to extract every distinct, meaningful financial row in the document. Interpret each row in the context of its headings and the document as a whole: a line item may represent a service, premium, fee, adjustment, payment, credit, benefit, or another concrete billing component. Preserve the document's logical row structure: use column headers to understand the values within a row, but do not turn each numeric cell into a separate line item unless the document clearly presents those cells as independent charges. Preserve meaningful rows even when concepts such as a CPT code or service date do not apply; leave those fields empty instead. Put document-wide aggregate totals in the total_* fields and do not duplicate the same row merely because its amount is repeated elsewhere.";
 sem StructuredDocument.review_flags = "Short machine-readable flags for a human reviewer, e.g. 'patient_name_not_found', 'smudged_account_number', 'amounts_do_not_reconcile'. Empty list if nothing stood out.";
 
 
 def structure_document(raw_text: str, filename: str) -> StructuredDocument by llm();
-sem structure_document = "Read one page of a patient's medical billing paperwork (a Medicare Summary Notice, insurance EOB, provider bill, or payment receipt) and extract it into a StructuredDocument. These are real-world documents with inconsistent layouts: names appear as 'Patient: CHEN, MARGARET', 'MARGARET CHEN' with no label, or 'Jackson, Daniel' in a table cell; totals may use dotted leaders ('Balance Due .......... $553.00') instead of a colon; dollar columns are only meaningful once you've read that table's own header row (order varies by insurer). Extract only what is actually printed -- never invent a value, and use empty string / None / UNKNOWN when something isn't present.";
+sem structure_document = "Act as an expert billing-document analyst. Read the complete extracted document holistically, understand what kind of document it is from its content, and map all relevant printed information into StructuredDocument. Use contextual judgment rather than rigid keyword, section-title, or layout rules. The typed fields are a structured output format, not a reason to discard meaningful information when a document expresses it differently. Interpret tables using their own headers and relationships between rows and columns. Extract only information supported by the document; when a field is absent or does not apply, use empty string, None, or UNKNOWN instead of inventing a value.";
 sem structure_document.raw_text = "The page's raw extracted text, in reading order, from OCR or a PDF text layer.";
 sem structure_document.filename = "Original filename, as a hint about document type (e.g. 'eob.pdf') -- content should override a misleading filename.";
 

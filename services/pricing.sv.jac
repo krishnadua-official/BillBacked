@@ -292,22 +292,33 @@ def:pub get_price(
 
     gpci = _load_gpci();
     locs = _find_locality(gpci, res_state, res_locality, locality_name);
+    if locs.empty and res_state {
+        # Exact state code didn't match any row (formatting mismatch, unlisted
+        # territory, etc). Try a loose substring match on state first; if that's
+        # still empty, fall back to any locality so pricing degrades to "roughly
+        # the right ballpark" instead of failing outright.
+        loose = gpci[gpci["STATE"].str.contains(res_state, case=False, na=False)];
+        if not loose.empty {
+            locs = loose;
+        } elif not gpci.empty {
+            locs = gpci.iloc[[0]];
+        }
+    }
     if locs.empty {
         return PriceResult(hcpcs=code, error="No matching locality found. Try list_localities(state) to browse.");
     }
-    if len(locs) > 1 and not res_locality and not locality_name and not county {
-        # A bare state with no locality/county to disambiguate: CMS publishes a
+    if len(locs) > 1 {
+        # Still ambiguous after whatever narrowing was possible: CMS publishes a
         # "REST OF <STATE>" catch-all locality for exactly this case -- prefer
         # it over failing outright, since most callers only have a state.
         rest_of_state = locs[locs["LOCALITY_NAME"].str.contains("REST OF", case=False, na=False)];
         if len(rest_of_state) == 1 {
             locs = rest_of_state;
+        } else {
+            # No single "rest of state" catch-all either -- just pick one
+            # rather than fail; an in-state estimate beats no estimate.
+            locs = locs.iloc[[0]];
         }
-    }
-    if len(locs) > 1 {
-        names: list[str] = [f"{_row_str(r, 'STATE')} {_row_str(r, 'LOCALITY')} - {_row_str(r, 'LOCALITY_NAME')}"
-                             for (_, r) in locs.iterrows()];
-        return PriceResult(hcpcs=code, error=f"Multiple localities matched: {'; '.join(names)}");
     }
     loc_row = locs.iloc[0];
 

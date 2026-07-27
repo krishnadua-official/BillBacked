@@ -12,17 +12,20 @@ sv import from ..services.negotiation {
     NegotiationCallResult, get_negotiation_call_status,
     start_audit_negotiation_call
 }
+sv import from ..services.bill { SaveNegotiationResult }
 
 
 def:pub NegotiationCallControl(
     is_available: bool = False,
     user_name: str = "",
+    bill_id: str = "",
     documents: list[StructuredDocument] | None = None,
     audit: BillAudit | None = None
 ) -> JsxElement {
     has result: NegotiationCallResult | None = None,
         error_message: str = "",
-        is_calling: bool = False;
+        is_calling: bool = False,
+        result_saved: bool = False;
 
     conversation_id: str = (
         result.conversation_id if result is not None else ""
@@ -78,6 +81,20 @@ def:pub NegotiationCallControl(
             result = status_result;
             if not status_result.success {
                 error_message = status_result.message;
+            }
+            if status_result.status == "completed" and bill_id and not result_saved {
+                result_saved = True;
+                try {
+                    await SaveNegotiationResult(
+                        bill_id,
+                        status_result.status,
+                        status_result.transcript_summary,
+                        None,
+                    );
+                } except Exception {
+                    # Best-effort: the call result still displays for this
+                    # session even if persisting it failed.
+                }
             }
         } except Exception {
             error_message = "The live negotiation status could not be refreshed.";
@@ -159,8 +176,23 @@ def:pub NegotiationCallControl(
                         Negotiation call finished
                     </p>
                     <p className="mt-1 text-xs leading-5 text-gray-900">
-                        The call result is ready for the next audit step.
+                        {
+                            result.transcript_summary
+                            if result.transcript_summary
+                            else "The call result is ready for the next audit step."
+                        }
                     </p>
+                    {if result.call_successful is not None {
+                        <p
+                            key="call-verdict"
+                            className={
+                                "mt-1.5 text-xs font-medium "
+                                + ("text-success" if result.call_successful else "text-gray-900")
+                            }
+                        >
+                            {"Outcome: reached agreement" if result.call_successful else "Outcome: not resolved on this call"}
+                        </p>
+                    }}
                 </div>
             </div>
         }}

@@ -46,7 +46,7 @@ def:pub InvoiceHistoryLink(
     route: str = "/dashboard/invoices/" + bill.id;
     provider: str = bill.provider_name if bill.provider_name else "Unknown provider";
     detail_label: str = (
-        f"${bill.total_billed:,.2f} billed" if bill.total_billed is not None
+        f"${bill.total_billed:.2f} billed" if bill.total_billed is not None
         else "Needs review" if len(bill.review_flags) > 0
         else "Extracted"
     );

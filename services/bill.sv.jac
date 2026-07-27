@@ -19,7 +19,7 @@ for Case.
 
 import from datetime { datetime, timezone }
 import from services.extractor { StructuredDocument, LineItem, DocumentType }
-import from services.discrepancy { BillAudit }
+import from services.discrepancy { BillAudit, LineDiscrepancy }
 
 
 def _now() -> str {
@@ -146,6 +146,11 @@ node BillLineItem {
     has allowed_amount: float | None = None;
     has paid_amount: float | None = None;
     has patient_owed: float | None = None;
+    has benchmark_amount: float | None = None;
+    has benchmark_source: str = "";
+    has overcharge_amount: float | None = None;
+    has flagged: bool = False;
+    has flag_reason: str = "";
 
     def to_view -> BillLineItemView {
         return BillLineItemView(
@@ -157,6 +162,11 @@ node BillLineItem {
             allowed_amount=self.allowed_amount,
             paid_amount=self.paid_amount,
             patient_owed=self.patient_owed,
+            benchmark_amount=self.benchmark_amount,
+            benchmark_source=self.benchmark_source,
+            overcharge_amount=self.overcharge_amount,
+            flagged=self.flagged,
+            flag_reason=self.flag_reason,
         );
     }
 }
@@ -179,6 +189,9 @@ node Bill {
     has total_benchmark: float | None = None;
     has total_overcharge: float | None = None;
     has flagged_count: int = 0;
+    has negotiation_status: str = "";
+    has negotiation_summary: str = "";
+    has negotiated_amount: float | None = None;
 
     def to_view -> BillView {
         return BillView(
@@ -199,6 +212,9 @@ node Bill {
             total_benchmark=self.total_benchmark,
             total_overcharge=self.total_overcharge,
             flagged_count=self.flagged_count,
+            negotiation_status=self.negotiation_status,
+            negotiation_summary=self.negotiation_summary,
+            negotiated_amount=self.negotiated_amount,
             line_items=[li.to_view() for li in [self -->][?:BillLineItem]],
         );
     }
@@ -214,6 +230,11 @@ obj BillLineItemView {
     has allowed_amount: float | None;
     has paid_amount: float | None;
     has patient_owed: float | None;
+    has benchmark_amount: float | None;
+    has benchmark_source: str;
+    has overcharge_amount: float | None;
+    has flagged: bool;
+    has flag_reason: str;
 }
 
 
@@ -235,6 +256,9 @@ obj BillView {
     has total_benchmark: float | None;
     has total_overcharge: float | None;
     has flagged_count: int;
+    has negotiation_status: str;
+    has negotiation_summary: str;
+    has negotiated_amount: float | None;
     has line_items: list[BillLineItemView];
 }
 
@@ -323,7 +347,11 @@ walker SaveExtractedBills {
             );
             here ++> new_bill;
 
-            for item in merged_items {
+            discrepancies: list[LineDiscrepancy] = (
+                (self.audit as BillAudit).discrepancies if self.audit is not None else []
+            );
+            for (idx, item) in enumerate(merged_items) {
+                disc: LineDiscrepancy | None = discrepancies[idx] if idx < len(discrepancies) else None;
                 new_bill ++> BillLineItem(
                     description=item.description,
                     service_date=item.service_date,
@@ -332,6 +360,11 @@ walker SaveExtractedBills {
                     allowed_amount=item.allowed_amount,
                     paid_amount=item.paid_amount,
                     patient_owed=item.patient_owed,
+                    benchmark_amount=(disc.benchmark_amount if disc is not None else None),
+                    benchmark_source=(disc.benchmark_source if disc is not None else ""),
+                    overcharge_amount=(disc.overcharge_amount if disc is not None else None),
+                    flagged=(disc.flagged if disc is not None else False),
+                    flag_reason=(disc.flag_reason if disc is not None else ""),
                 );
             }
 
@@ -339,4 +372,25 @@ walker SaveExtractedBills {
             report new_bill.to_view();
         }
     }
+}
+
+
+"""Record a negotiation call's outcome on the bill it was placed for, so the
+result survives a reload instead of only living in the browser tab that
+watched the call finish."""
+def:pub SaveNegotiationResult(
+    bill_id: str,
+    status: str,
+    summary: str,
+    negotiated_amount: float | None = None
+) -> BillView | None {
+    for b in [root -->][?:Bill] {
+        if jid(b) == bill_id {
+            b.negotiation_status = status;
+            b.negotiation_summary = summary;
+            b.negotiated_amount = negotiated_amount;
+            return b.to_view();
+        }
+    }
+    return None;
 }

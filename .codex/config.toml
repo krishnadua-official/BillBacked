@@ -1,0 +1,3 @@
+[mcp_servers.jac]
+command = "jac"
+args = ["mcp"]

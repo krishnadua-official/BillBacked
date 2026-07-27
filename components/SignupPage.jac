@@ -34,6 +34,7 @@ def:pub SignupPage() -> JsxElement {
     async def create_account(
         accepted_terms: bool,
         acknowledged_privacy: bool,
+        full_name: str,
         state: str,
         coverage_type: str
     ) -> None {
@@ -68,7 +69,7 @@ def:pub SignupPage() -> JsxElement {
 
         try {
             root spawn SavePatientProfile(
-                name="",
+                name=full_name,
                 state=state,
                 coverage_type=coverage_type as CoverageType,
                 county=None,

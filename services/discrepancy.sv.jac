@@ -108,10 +108,10 @@ def _benchmark_for(
         );
     }
 
-    if price.found and price.error is not None {
+    if price.error is not None {
         return BenchmarkLookup(error=price.error);
     }
-    if lab.found and lab.error is not None {
+    if lab.error is not None {
         return BenchmarkLookup(error=lab.error);
     }
     return BenchmarkLookup(error=f"HCPCS/CPT code '{code}' not found in MPFS or CLFS.");

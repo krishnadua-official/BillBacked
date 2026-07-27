@@ -156,6 +156,7 @@ def:pub AuditProcessPage() -> JsxElement {
     has error_message: str = "";
     has resolved_bill: BillView | None = None;
     has bill_lookup_done: bool = False;
+    has saved_bill_id: str = "";
 
     location = useLocation();
     nav = useNavigate();
@@ -223,7 +224,10 @@ def:pub AuditProcessPage() -> JsxElement {
                 } else {
                     needs_patient_profile = True;
                 }
-                await root spawn SaveExtractedBills(documents=docs, audit=computed_audit);
+                save_result = await root spawn SaveExtractedBills(documents=docs, audit=computed_audit);
+                if len(save_result.reports) > 0 {
+                    saved_bill_id = save_result.reports[0].id;
+                }
             } except Exception as e {
                 error_message = str(e);
             }
@@ -243,13 +247,12 @@ def:pub AuditProcessPage() -> JsxElement {
         and len(extracted_docs) > 0
         and (audit as BillAudit).flagged_count > 0
     );
-    found_patient_name: str = "";
-    for doc in extracted_docs {
-        if doc.patient_name {
-            found_patient_name = doc.patient_name;
-            break;
-        }
-    }
+    # The account holder's own name, not text parsed from an uploaded bill.
+    found_patient_name: str = (
+        (patient_profile as PatientView).name
+        if patient_profile is not None and (patient_profile as PatientView).name
+        else ""
+    );
     found_provider_name: str = "";
     for doc in extracted_docs {
         if doc.provider_name {
@@ -286,7 +289,7 @@ def:pub AuditProcessPage() -> JsxElement {
         status_copy = "Charges were extracted, but we can't price them against Medicare rates without your state on file. Add it in Settings, then upload again.";
     } elif not is_history and current_step == 4 and audit is not None and (audit as BillAudit).flagged_count > 0 {
         overcharge: float = (audit as BillAudit).total_overcharge;
-        status_title = f"You could save ${overcharge:,.2f}";
+        status_title = f"You could save ${overcharge:.2f}";
         status_copy = "You will approve the true-cost bill before any provider outreach begins.";
     } elif not is_history and current_step == 4 {
         status_title = "Your audit is ready";
@@ -363,7 +366,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                 <p className="text-xs text-gray-900">Billed total</p>
                                 <p className="mt-2 text-xl font-medium tracking-[-0.04em]">
                                     {
-                                        f"${(resolved_bill as BillView).total_billed:,.2f}"
+                                        f"${(resolved_bill as BillView).total_billed:.2f}"
                                         if (resolved_bill as BillView).total_billed is not None
                                         else "Not printed"
                                     }
@@ -373,7 +376,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                 <p className="text-xs text-gray-900">Medicare-approved</p>
                                 <p className="mt-2 text-xl font-medium tracking-[-0.04em]">
                                     {
-                                        f"${(resolved_bill as BillView).total_benchmark:,.2f}"
+                                        f"${(resolved_bill as BillView).total_benchmark:.2f}"
                                         if (resolved_bill as BillView).total_benchmark is not None
                                         else "Not calculated"
                                     }
@@ -383,12 +386,26 @@ def:pub AuditProcessPage() -> JsxElement {
                                 <p className="text-xs text-gray-900">Potential savings</p>
                                 <p className="mt-2 text-xl font-medium tracking-[-0.04em] text-blue-700">
                                     {
-                                        f"${(resolved_bill as BillView).total_overcharge:,.2f}"
+                                        f"${(resolved_bill as BillView).total_overcharge:.2f}"
                                         if (resolved_bill as BillView).total_overcharge is not None
                                         else "--"
                                     }
                                 </p>
                             </div>
+                        </div>
+                    }}
+                    {if is_history and (resolved_bill as BillView).negotiation_status == "completed" {
+                        <div key="history-negotiation" className="mt-4 rounded-2xl bg-blue-100 p-4">
+                            <p className="text-xs font-medium text-gray-1000">
+                                Negotiation call finished
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-gray-900">
+                                {
+                                    (resolved_bill as BillView).negotiation_summary
+                                    if (resolved_bill as BillView).negotiation_summary
+                                    else "The call completed. No summary was returned."
+                                }
+                            </p>
                         </div>
                     }}
                     {if is_history and len((resolved_bill as BillView).line_items) > 0 {
@@ -409,7 +426,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                         }}
                                     </div>
                                     <p className="shrink-0 text-sm font-medium tabular-nums text-gray-1000">
-                                        {f"${item.billed_amount:,.2f}" if item.billed_amount is not None else "--"}
+                                        {f"${item.billed_amount:.2f}" if item.billed_amount is not None else "--"}
                                     </p>
                                 </div>
                             }}
@@ -487,7 +504,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                             }}
                                         </div>
                                         <p className="shrink-0 text-sm font-medium tabular-nums text-gray-1000">
-                                            {f"${item.billed_amount:,.2f}" if item.billed_amount is not None else "--"}
+                                            {f"${item.billed_amount:.2f}" if item.billed_amount is not None else "--"}
                                         </p>
                                     </div>
                                     for (idx, item) in enumerate(merged_items)
@@ -508,19 +525,19 @@ def:pub AuditProcessPage() -> JsxElement {
                             <div className="rounded-2xl bg-background-200 p-4">
                                 <p className="text-xs text-gray-900">Billed total</p>
                                 <p className="mt-2 text-lg font-medium tracking-[-0.04em]">
-                                    {f"${(audit as BillAudit).total_billed:,.2f}"}
+                                    {f"${(audit as BillAudit).total_billed:.2f}"}
                                 </p>
                             </div>
                             <div className="rounded-2xl bg-background-200 p-4">
                                 <p className="text-xs text-gray-900">Medicare-approved</p>
                                 <p className="mt-2 text-lg font-medium tracking-[-0.04em]">
-                                    {f"${(audit as BillAudit).total_benchmark:,.2f}"}
+                                    {f"${(audit as BillAudit).total_benchmark:.2f}"}
                                 </p>
                             </div>
                             <div className="rounded-2xl bg-blue-100 p-4">
                                 <p className="text-xs text-gray-900">Potential savings</p>
                                 <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-blue-700">
-                                    {f"${(audit as BillAudit).total_overcharge:,.2f}"}
+                                    {f"${(audit as BillAudit).total_overcharge:.2f}"}
                                 </p>
                             </div>
                         </div>
@@ -559,11 +576,11 @@ def:pub AuditProcessPage() -> JsxElement {
                                     </div>
                                     <div className="shrink-0 text-right">
                                         <p className="text-sm font-medium tabular-nums text-gray-1000">
-                                            {f"${disc.billed_amount:,.2f} billed"}
+                                            {f"${disc.billed_amount:.2f} billed"}
                                         </p>
                                         <p className="mt-1 text-xs tabular-nums text-gray-700">
                                             {
-                                                f"${(disc.benchmark_amount as float):,.2f} Medicare-approved"
+                                                f"${(disc.benchmark_amount as float):.2f} Medicare-approved"
                                                 if disc.benchmark_amount is not None
                                                 else "No Medicare rate found"
                                             }
@@ -641,12 +658,12 @@ def:pub AuditProcessPage() -> JsxElement {
                             <div key="step3-savings" className="mt-2 flex flex-col gap-0.5 text-xs">
                                 <p className="text-gray-700">
                                     {
-                                        f"Target (Medicare-approved) price: ${(audit as BillAudit).total_benchmark:,.2f} "
+                                        f"Target (Medicare-approved) price: ${(audit as BillAudit).total_benchmark:.2f} "
                                         + f"(for the {len((audit as BillAudit).discrepancies) - (audit as BillAudit).unresolved_count} of {len((audit as BillAudit).discrepancies)} items with a Medicare rate)"
                                     }
                                 </p>
                                 <p className="font-medium text-blue-700">
-                                    {f"Potential savings: ${(audit as BillAudit).total_overcharge:,.2f}"}
+                                    {f"Potential savings: ${(audit as BillAudit).total_overcharge:.2f}"}
                                 </p>
                                 {if (audit as BillAudit).unresolved_count > 0 {
                                     <p key="step3-unresolved" className="text-gray-700">
@@ -691,6 +708,7 @@ def:pub AuditProcessPage() -> JsxElement {
                                 if patient_profile is not None
                                 else ""
                             }
+                            bill_id={saved_bill_id}
                             documents={extracted_docs}
                             audit={audit}
                         />

@@ -34,7 +34,7 @@ def:pub InvoiceDashboardRow(bill: BillView) -> JsxElement {
     nav = useNavigate();
     route: str = "/dashboard/invoices/" + bill.id;
     provider: str = bill.provider_name if bill.provider_name else "Unknown provider";
-    billed_label: str = f"${bill.total_billed:,.2f}" if bill.total_billed is not None else "--";
+    billed_label: str = f"${bill.total_billed:.2f}" if bill.total_billed is not None else "--";
     status_label: str = "Needs review" if len(bill.review_flags) > 0 else "Extracted";
     date_label: str = bill.created_at[:10] if bill.created_at else "";
 
@@ -110,7 +110,7 @@ def:pub DashboardHomePage() -> JsxElement {
                 />
                 <DashboardMetric
                     label="Total billed"
-                    value={f"${total_billed:,.2f}"}
+                    value={f"${total_billed:.2f}"}
                     detail="Across all uploaded bills"
                 />
                 <DashboardMetric

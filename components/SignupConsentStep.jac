@@ -6,6 +6,7 @@ import from "@jac/runtime" { Link }
 import from ".ui.button" { Button }
 import from ".ui.checkbox" { Checkbox }
 import from ".ui.field" { Field, FieldLabel }
+import from ".ui.input" { Input }
 
 
 glob US_STATE_OPTIONS: list[tuple[str, str]] = [
@@ -36,27 +37,34 @@ def:pub SignupConsentStep(
     busy: bool,
     error: str,
     on_back: Callable[[], None],
-    on_create: Callable[[bool, bool, str, str], None]
+    on_create: Callable[[bool, bool, str, str, str], None]
 ) -> JsxElement {
     has accepted_terms: bool = False,
         acknowledged_privacy: bool = False,
+        full_name: str = "",
         state: str = "",
         coverage_type: str = "MEDICARE",
         validation_error: str = "";
 
     def handle_submit(e: FormEvent) {
         e.preventDefault();
+        if not full_name.strip() {
+            validation_error = "Enter your name -- it's how we identify you to a provider if you ever start a call, never taken from an uploaded bill.";
+            return;
+        }
         if not state {
             validation_error = "Select your state so we can price your bill correctly.";
             return;
         }
         validation_error = "";
-        on_create(accepted_terms, acknowledged_privacy, state, coverage_type);
+        on_create(accepted_terms, acknowledged_privacy, full_name.strip(), state, coverage_type);
     }
 
     def handle_terms(checked: bool) { accepted_terms = checked; }
 
     def handle_privacy(checked: bool) { acknowledged_privacy = checked; }
+
+    def handle_name(e: ChangeEvent) { full_name = e.target.value; }
 
     def handle_state(e: ChangeEvent) { state = e.target.value; }
 
@@ -92,6 +100,22 @@ def:pub SignupConsentStep(
         </div>
 
         <form className="mt-6 flex flex-col gap-5" onSubmit={handle_submit}>
+            <Field>
+                <FieldLabel htmlFor="signup-name">Your name</FieldLabel>
+                <Input
+                    id="signup-name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Full name"
+                    value={full_name}
+                    onChange={handle_name}
+                    className="h-11 rounded-[14px] bg-background-200 px-4 shadow-none"
+                />
+                <p className="mt-1.5 text-xs text-gray-700">
+                    Used to identify you to a provider if you start a call. Never taken from an uploaded bill.
+                </p>
+            </Field>
+
             <Field>
                 <FieldLabel htmlFor="signup-state">State</FieldLabel>
                 <select

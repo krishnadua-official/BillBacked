@@ -42,6 +42,8 @@ obj NegotiationCallResult {
     has message: str = "";
     has conversation_id: str = "";
     has provider_call_id: str = "";
+    has transcript_summary: str = "";
+    has call_successful: bool | None = None;
 }
 
 
@@ -82,11 +84,43 @@ def _disputed_item_summary(discrepancy: LineDiscrepancy) -> str {
             + " vs Medicare reference "
             + _format_amount(discrepancy.benchmark_amount as float)
         );
-    }
-    if discrepancy.flag_reason {
+    } elif discrepancy.flag_reason {
         summary = summary + ". " + discrepancy.flag_reason.strip();
     }
     return summary;
+}
+
+
+"""Cap what a phone/email negotiation script itemizes -- a real negotiator
+opens with the total and the biggest few items, not a recitation of every
+flagged line. The rest are summarized by count and dollar total so the
+agent still has the full picture without reading out 20 line items.
+"""
+glob NEGOTIATION_ITEM_CAP: int = 5;
+
+def _summarize_disputed_items(discrepancies: list[LineDiscrepancy]) -> list[str] {
+    flagged: list[LineDiscrepancy] = [d for d in discrepancies if d.flagged];
+    if len(flagged) == 0 {
+        return [];
+    }
+    ranked: list[LineDiscrepancy] = sorted(
+        flagged, key=lambda (d: LineDiscrepancy) { d.billed_amount; }, reverse=True
+    );
+    top: list[LineDiscrepancy] = ranked[:NEGOTIATION_ITEM_CAP];
+    lines: list[str] = [_disputed_item_summary(d) for d in top];
+
+    remaining: int = len(flagged) - len(top);
+    if remaining > 0 {
+        remaining_total: float = sum(
+            [d.billed_amount for d in ranked[NEGOTIATION_ITEM_CAP:]]
+        );
+        lines.append(
+            f"Plus {remaining} more flagged item{'s' if remaining != 1 else ''} "
+            + f"totaling {_format_amount(remaining_total)} billed -- available on request, "
+            + "not itemized here."
+        );
+    }
+    return lines;
 }
 
 
@@ -113,20 +147,15 @@ def _build_case_from_audit(
             invoice_number = document.claim_number.strip();
         }
     }
-    resolved_user_name: str = user_name.strip() or patient_name;
     if not invoice_number {
         invoice_number = case_id;
     }
-    disputed_items: list[str] = [
-        _disputed_item_summary(discrepancy)
-        for discrepancy in audit.discrepancies
-        if discrepancy.flagged
-    ];
+    disputed_items: list[str] = _summarize_disputed_items(audit.discrepancies);
     return NegotiationCase(
         is_demo=False,
         case_id=case_id,
-        user_name=resolved_user_name,
-        patient_name=patient_name or resolved_user_name,
+        user_name=user_name.strip(),
+        patient_name=patient_name,
         provider_name=provider_name,
         invoice_number=invoice_number,
         original_balance=audit.total_billed,
@@ -310,9 +339,41 @@ def _get_conversation(
 }
 
 
+"""Pull ElevenLabs' post-call analysis into a short human-readable summary --
+`analysis.transcript_summary` is the agent's own recap of the call.
+Defensive against a missing/partial `analysis` block -- ElevenLabs only
+populates it once the call has fully processed. The success/failure
+verdict is surfaced separately via _analysis_call_successful, not folded
+into this text.
+"""
+def _summarize_analysis(response: dict[str, any]) -> str {
+    analysis = response.get("analysis");
+    if not analysis {
+        return "";
+    }
+    return str(analysis.get("transcript_summary") or "").strip();
+}
+
+def _analysis_call_successful(response: dict[str, any]) -> bool | None {
+    analysis = response.get("analysis");
+    if not analysis {
+        return None;
+    }
+    verdict = analysis.get("call_successful");
+    if verdict == "success" {
+        return True;
+    }
+    if verdict == "failure" {
+        return False;
+    }
+    return None;
+}
+
+
 def _call_status_result(
     conversation_id: str,
-    provider_status: str
+    provider_status: str,
+    response: dict[str, any] | None = None
 ) -> NegotiationCallResult {
     if provider_status == "initiated" {
         return NegotiationCallResult(
@@ -343,7 +404,9 @@ def _call_status_result(
             success=True,
             status="completed",
             message="The negotiation call finished.",
-            conversation_id=conversation_id
+            conversation_id=conversation_id,
+            transcript_summary=(_summarize_analysis(response) if response is not None else ""),
+            call_successful=(_analysis_call_successful(response) if response is not None else None),
         );
     }
     if provider_status == "failed" {
@@ -504,6 +567,12 @@ def:protect start_audit_negotiation_call(
     documents: list[StructuredDocument],
     audit: BillAudit
 ) -> NegotiationCallResult {
+    if not user_name.strip() {
+        return NegotiationCallResult(
+            status="missing_account_name",
+            message="Add your name in Settings before starting a call -- it identifies you to the provider, and is never taken from an uploaded bill."
+        );
+    }
     return _start_negotiation_call(
         _build_case_from_audit(user_name, documents, audit)
     );
@@ -561,6 +630,7 @@ def:protect get_negotiation_call_status(
     provider_status_value = response.get("status", "");
     return _call_status_result(
         conversation_id,
-        str(provider_status_value) if provider_status_value else ""
+        str(provider_status_value) if provider_status_value else "",
+        response
     );
 }
